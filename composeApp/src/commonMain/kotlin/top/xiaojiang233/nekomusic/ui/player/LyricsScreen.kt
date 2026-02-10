@@ -27,8 +27,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,9 +46,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import top.xiaojiang233.nekomusic.settings.SettingsManager
-import top.xiaojiang233.nekomusic.utils.LyricsParser
+import top.xiaojiang233.nekomusic.ui.components.KaraokeLyricLine
 import top.xiaojiang233.nekomusic.viewmodel.PlayerViewModel
 import kotlin.math.abs
 
@@ -107,6 +102,21 @@ fun LyricsScreen(
     val isDragged by listState.interactionSource.collectIsDraggedAsState()
 
     var isUserScrolling by remember { mutableStateOf(false) }
+    var isAutoScrolling by remember { mutableStateOf(false) }
+
+    // Detect manual scroll (including mouse wheel)
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress && !isAutoScrolling) {
+            isUserScrolling = true
+        }
+    }
+
+    LaunchedEffect(isUserScrolling, isDragged, listState.isScrollInProgress) {
+        if (isUserScrolling && !isDragged && !listState.isScrollInProgress) {
+            delay(3000)
+            isUserScrolling = false
+        }
+    }
 
     val displayLyrics = remember(lyrics) {
         buildList {
@@ -117,7 +127,7 @@ fun LyricsScreen(
                 }
             }
             lyrics.forEachIndexed { index, lyric ->
-                add(LyricItem.Content(lyric.time, lyric.text, null)) // Translation not yet supported in parser
+                add(LyricItem.Content(lyric.time, lyric.text, lyric.translation))
                 val nextTime = lyrics.getOrNull(index + 1)?.time
                 if (nextTime != null && nextTime - lyric.time >= 10_000) {
                     add(LyricItem.Interlude(time = lyric.time + 5000, endTime = nextTime))
@@ -139,25 +149,31 @@ fun LyricsScreen(
         }
     }
 
-    LaunchedEffect(isUserScrolling, isDragged, listState.isScrollInProgress) {
-        if (isUserScrolling && !isDragged && !listState.isScrollInProgress) {
-            delay(3000)
-            isUserScrolling = false
+    LaunchedEffect(currentDisplayIndex, isUserScrolling) {
+        if (currentDisplayIndex >= 0 && !isUserScrolling) {
+            isAutoScrolling = true
+            listState.animateScrollToItem(
+                index = currentDisplayIndex,
+                scrollOffset = 0
+            )
+            isAutoScrolling = false
         }
     }
 
     // Get container height using BoxWithConstraints to calculate padding
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val containerHeight = maxHeight
-        val verticalPadding = containerHeight * 0.40f
+        val containerHeight = this.maxHeight
+        val verticalPadding = containerHeight * 0.30f
         val horizontalPadding = 32.dp
 
         LaunchedEffect(currentDisplayIndex, isUserScrolling) {
             if (currentDisplayIndex >= 0 && !isUserScrolling) {
+                isAutoScrolling = true
                 listState.animateScrollToItem(
                     index = currentDisplayIndex,
                     scrollOffset = 0
                 )
+                isAutoScrolling = false
             }
         }
 
@@ -192,14 +208,14 @@ fun LyricsScreen(
                             label = "scale"
                         )
 
-                        val targetAlpha = if (isUserScrolling) 0.6f else (1f - (distance * 0.15f)).coerceIn(0.1f, 1f)
+                        val targetAlpha = if (isUserScrolling) 1f else (1f - (distance * 0.15f)).coerceIn(0.1f, 1f)
                         val animatedAlpha by animateFloatAsState(
                             targetValue = if (isCurrent) 1f else targetAlpha,
                             animationSpec = tween(durationMillis = 300),
                             label = "alpha"
                         )
 
-                        val targetBlur = if (isUserScrolling) 1f else if (isCurrent) 0f else (distance * 2f * (lyricsBlurIntensity / 10f)).coerceAtMost(lyricsBlurIntensity)
+                        val targetBlur = if (isUserScrolling) 0f else if (isCurrent) 0f else (distance * 2f * (lyricsBlurIntensity / 10f)).coerceAtMost(lyricsBlurIntensity)
                         val blurRadius by animateFloatAsState(
                             targetValue = targetBlur,
                             animationSpec = tween(durationMillis = 300),
@@ -235,13 +251,14 @@ fun LyricsScreen(
                                 ) {
                                     if (lyricLine?.words != null && isCurrent) {
                                         // Verbatim lyrics rendering (Fluid Version)
-                                        top.xiaojiang233.nekomusic.ui.components.KaraokeLyricLine(
+                                        KaraokeLyricLine(
                                             text = item.text,
                                             words = lyricLine.words,
                                             currentPosition = currentPosition,
                                             fontSize = lyricsFontSize.sp,
                                             fontFamily = fontFamily,
-                                            activeColor = Color.White
+                                            activeColor = Color.White,
+                                            inactiveColor = Color.Gray
                                         )
                                     } else {
                                         // Standard text
@@ -253,7 +270,7 @@ fun LyricsScreen(
                                                 lineHeight = (lyricsFontSize * 1.4).sp,
                                                 fontFamily = fontFamily
                                             ),
-                                            color = Color.White,
+                                            color = if (index > currentDisplayIndex) Color.Gray else Color.White,
                                             textAlign = TextAlign.Start,
                                             modifier = Modifier.fillMaxWidth()
                                         )
@@ -269,7 +286,7 @@ fun LyricsScreen(
                                                 lineHeight = (lyricsFontSize * 0.7f * 1.3).sp,
                                                 fontFamily = fontFamily
                                             ),
-                                            color = Color.White.copy(alpha = 0.75f),
+                                            color = (if (index > currentDisplayIndex) Color.Gray else Color.White).copy(alpha = 0.75f),
                                             textAlign = TextAlign.Start,
                                             modifier = Modifier.fillMaxWidth()
                                         )

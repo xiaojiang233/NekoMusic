@@ -93,11 +93,45 @@ object NeteaseApi {
         return request("/song/url/v1", mapOf("id" to id, "level" to level))
     }
 
-    suspend fun search(keywords: String, limit: Int = 30, offset: Int = 0): CloudSearchResponse {
-        return request("/cloudsearch", mapOf("keywords" to keywords, "limit" to limit, "offset" to offset))
+    suspend fun search(keywords: String, limit: Int = 30, offset: Int = 0, type: Int = 1): CloudSearchResponse {
+        return request("/cloudsearch", mapOf("keywords" to keywords, "limit" to limit, "offset" to offset, "type" to type))
     }
 
     suspend fun getLyrics(id: Long): LyricResponse {
         return request("/lyric/new", mapOf("id" to id))
+    }
+
+    suspend fun getArtistDetail(id: Long): ArtistDetailResponse {
+        return request("/artist/detail", mapOf("id" to id))
+    }
+
+    suspend fun getArtistTopSongs(id: Long): ArtistTopSongsResponse {
+        return request("/artist/top/song", mapOf("id" to id))
+    }
+
+    suspend fun likeSong(id: Long, like: Boolean = true): LikeResponse {
+        return request("/like", mapOf("id" to id, "like" to like))
+    }
+
+    suspend fun getLikeList(uid: Long): LikeListResponse {
+        return request("/likelist", mapOf("uid" to uid))
+    }
+
+    suspend fun subscribePlaylist(id: Long, subscribe: Boolean = true): SubscribePlaylistResponse {
+        val t = if (subscribe) 1 else 2
+        return request("/playlist/subscribe", mapOf("id" to id, "t" to t))
+    }
+
+    suspend fun addSongToPlaylist(op: String, pid: Long, trackIds: List<Long>): PlaylistTracksResponse {
+        return request("/playlist/tracks", mapOf("op" to op, "pid" to pid, "tracks" to trackIds.joinToString(",")))
+    }
+
+    suspend fun createPlaylist(name: String, privacy: Int = 0): CreatePlaylistResponse {
+        // privacy: 0 for public, 10 for private
+        return request("/playlist/create", mapOf("name" to name, "privacy" to privacy))
+    }
+
+    suspend fun deletePlaylist(pid: Long): DeletePlaylistResponse {
+        return request("/playlist/delete", mapOf("id" to pid))
     }
 }

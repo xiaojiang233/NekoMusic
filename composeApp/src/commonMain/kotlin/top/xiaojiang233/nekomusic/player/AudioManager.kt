@@ -18,6 +18,7 @@ expect object AudioManager {
     fun resume()
     fun seekTo(position: Long)
     fun release()
+    fun setVolume(volume: Float)
 
     // Callbacks for Queue Management
     var onNext: (() -> Unit)?

@@ -14,9 +14,9 @@ data class UserDetailResponse(
 data class UserProfile(
     val userId: Long,
     val nickname: String,
-    val avatarUrl: String,
-    val backgroundUrl: String?,
-    val signature: String?
+    val avatarUrl: String? = null,
+    val backgroundUrl: String? = null,
+    val signature: String? = null
 )
 
 @Serializable
@@ -27,4 +27,3 @@ data class UserPlaylistResponse(
 
 // Re-using Playlist from Models.kt, assuming fields align or we might need to make properties nullable there if they vary.
 // Let's ensure Playlist in Models.kt is compatible.
-

@@ -29,5 +29,30 @@
     <string name="recommended_playlists">Recommended Playlists</string>
     <string name="daily_recommendations">Daily Recommendations</string>
     <string name="user_playlist">My Playlists</string>
+    <string name="welcome_title">Welcome to NekoMusic</string>
+    <string name="choose_theme">Choose Theme</string>
+    <string name="light">Light</string>
+    <string name="dark">Dark</string>
+    <string name="api_url_placeholder">http://localhost:3000</string>
+    <string name="get_started">Get Started</string>
+    <string name="set_api_url_title">Set API URL</string>
+    <string name="settings_title">Settings</string>
+    <string name="logged_in">Logged in</string>
+    <string name="retry_refresh">Retry / Refresh</string>
+    <string name="history">History</string>
+    <string name="clear">Clear</string>
+    <string name="no_history">No history</string>
+    <string name="search_placeholder">Search...</string>
+    <string name="manual_login_required">Manual Login Required</string>
+    <string name="desktop_login_tip">Desktop version requires manual login due to system limitations.</string>
+    <string name="login_step_1">1. Click 'Open Browser' to log in at music.163.com</string>
+    <string name="login_step_2">2. Copy the cookie as per instructions.</string>
+    <string name="login_step_3">3. Paste it in the input field manually.</string>
+    <string name="open_browser">Open Browser</string>
+    <string name="lyrics_settings">Lyrics Settings</string>
+    <string name="font_size">Font Size</string>
+    <string name="blur_intensity">Blur Intensity</string>
+    <string name="font_family">Font Family</string>
+    <string name="cookie_tutorial_title">How to get Cookie (Chromium Browsers)</string>
+    <string name="cookie_tutorial_body">1. Log in to music.163.com in browser.\n2. Open Developer Tools (F12) -> Network tab.\n3. Filter by Fetch/XHR.\n4. Click 'Daily Recommendation' or refresh.\n5. Find any request (e.g. songs?csrf_token).\n6. In Headers -> Request Headers, copy the cookie value.\n7. Paste it below.</string>
 </resources>
-

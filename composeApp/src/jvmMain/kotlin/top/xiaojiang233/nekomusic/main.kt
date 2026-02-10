@@ -5,20 +5,28 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.window.WindowDraggableArea
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Minimize
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import top.xiaojiang233.nekomusic.settings.SettingsManager
+import java.awt.Dimension
 
 fun main() {
+    // Initialize app logging before anything else
+    try { initAppLogging() } catch (_: Exception) {}
+
     System.setProperty("skiko.renderApi", "OPENGL")
     application {
         val windowState = rememberWindowState(width = 1280.dp, height = 800.dp)
@@ -28,11 +36,29 @@ fun main() {
             onCloseRequest = ::exitApplication,
             title = "NekoMusic",
             state = windowState,
-            undecorated = true
+            undecorated = true,
         ) {
+            window.minimumSize = Dimension(1024, 640)
+
             MaterialTheme(colorScheme = if(isDark) darkColorScheme() else lightColorScheme()) {
-                Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    WindowDraggableArea {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .onPreviewKeyEvent { event ->
+                            if (event.key == Key.F11 && event.type == KeyEventType.KeyUp) {
+                                windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
+                                    WindowPlacement.Floating
+                                } else {
+                                    WindowPlacement.Fullscreen
+                                }
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                ) {
+                    this@Window.WindowDraggableArea {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -50,7 +76,7 @@ fun main() {
 
                             Row {
                                 IconButton(onClick = { windowState.isMinimized = true }) {
-                                    Icon(Icons.Filled.Minimize, contentDescription = "Minimize")
+                                    Icon(Icons.Filled.Remove, contentDescription = "Minimize")
                                 }
                                 IconButton(onClick = ::exitApplication) {
                                     Icon(Icons.Filled.Close, contentDescription = "Close")

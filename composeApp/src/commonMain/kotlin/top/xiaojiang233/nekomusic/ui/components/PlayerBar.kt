@@ -1,12 +1,15 @@
 package top.xiaojiang233.nekomusic.ui.components
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -14,21 +17,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import top.xiaojiang233.nekomusic.player.AudioManager
+import top.xiaojiang233.nekomusic.utils.FavoritesManager
 import top.xiaojiang233.nekomusic.utils.thumbnail
+import kotlinx.coroutines.launch
 
 @Composable
 fun PlayerBar(
-    modifier: Modifier = Modifier, // Add modifier param for positioning
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val state by AudioManager.state.collectAsState()
     val song = state.currentSong
+    val likedIds by FavoritesManager.likedSongIds.collectAsState()
+    val scope = rememberCoroutineScope()
 
     // Animate visibility of the dock
     AnimatedVisibility(
@@ -38,6 +45,9 @@ fun PlayerBar(
         modifier = modifier.padding(16.dp) // Outer padding for floating effect
     ) {
         if (song != null) {
+            val targetProgress = (if (state.duration > 0) state.currentPosition.toFloat() / state.duration.toFloat() else 0f).coerceIn(0f, 1f)
+            val progress by animateFloatAsState(targetProgress, label = "Progress")
+
             // Limit width so it won't cover full window; center it via parent alignment
             Surface(
                 modifier = Modifier
@@ -49,13 +59,21 @@ fun PlayerBar(
                 tonalElevation = 8.dp,
                 shadowElevation = 8.dp
             ) {
-                // Click handled on inner row so only the pill area is clickable
-                Box {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Background Progress Bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(progress)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                    )
+
+                    // Content
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable { onClick() }
-                            .padding(horizontal = 12.dp, vertical = 8.dp), // Inner padding
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Cover
@@ -85,6 +103,16 @@ fun PlayerBar(
                             )
                         }
 
+                        // Like Button
+                        val isLiked = likedIds.contains(song.id)
+                        IconButton(onClick = { scope.launch { FavoritesManager.toggleLike(song.id) } }) {
+                            Icon(
+                                if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Like",
+                                tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         // Controls
                         FilledIconButton(
                             onClick = {
@@ -99,21 +127,6 @@ fun PlayerBar(
                         }
 
                         Spacer(Modifier.width(8.dp))
-                    }
-
-                    // Thin Progress Indicator at bottom sized to the pill width
-                    if (state.duration > 0) {
-                        val progress = (state.currentPosition.toFloat() / state.duration.toFloat()).coerceIn(0f, 1f)
-                        LinearProgressIndicator(
-                            progress = progress,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(start = 8.dp, end = 8.dp, bottom = 6.dp)
-                                .height(3.dp)
-                                .fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        )
                     }
                 }
             }

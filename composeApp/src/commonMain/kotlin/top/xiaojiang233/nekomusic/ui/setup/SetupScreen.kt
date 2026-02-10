@@ -7,6 +7,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import nekomusic.composeapp.generated.resources.Res
+import nekomusic.composeapp.generated.resources.api_url
+import nekomusic.composeapp.generated.resources.api_url_placeholder
+import nekomusic.composeapp.generated.resources.choose_theme
+import nekomusic.composeapp.generated.resources.dark
+import nekomusic.composeapp.generated.resources.get_started
+import nekomusic.composeapp.generated.resources.light
+import nekomusic.composeapp.generated.resources.welcome_title
+import org.jetbrains.compose.resources.stringResource
 import top.xiaojiang233.nekomusic.settings.SettingsManager
 
 @Composable
@@ -25,15 +34,15 @@ fun SetupScreen(onFinished: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Welcome to NekoMusic", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(Res.string.welcome_title), style = MaterialTheme.typography.headlineMedium)
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text("Choose Theme")
+        Text(stringResource(Res.string.choose_theme))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Light")
+            Text(stringResource(Res.string.light))
             Switch(checked = isDark, onCheckedChange = { isDark = it })
-            Text("Dark")
+            Text(stringResource(Res.string.dark))
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -41,8 +50,8 @@ fun SetupScreen(onFinished: () -> Unit) {
         OutlinedTextField(
             value = apiUrl,
             onValueChange = { apiUrl = it },
-            label = { Text("API URL") },
-            placeholder = { Text("http://localhost:3000") },
+            label = { Text(stringResource(Res.string.api_url)) },
+            placeholder = { Text(stringResource(Res.string.api_url_placeholder)) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -60,8 +69,7 @@ fun SetupScreen(onFinished: () -> Unit) {
                 }
             }
         ) {
-            Text("Get Started")
+            Text(stringResource(Res.string.get_started))
         }
     }
 }
-

@@ -29,5 +29,30 @@
     <string name="recommended_playlists">推荐歌单</string>
     <string name="daily_recommendations">每日推荐</string>
     <string name="user_playlist">我的歌单</string>
+    <string name="welcome_title">欢迎使用 NekoMusic</string>
+    <string name="choose_theme">选择主题</string>
+    <string name="light">浅色</string>
+    <string name="dark">深色</string>
+    <string name="api_url_placeholder">http://localhost:3000</string>
+    <string name="get_started">开始使用</string>
+    <string name="set_api_url_title">设置 API 地址</string>
+    <string name="settings_title">设置</string>
+    <string name="logged_in">已登录</string>
+    <string name="retry_refresh">重试 / 刷新</string>
+    <string name="history">历史记录</string>
+    <string name="clear">清空</string>
+    <string name="no_history">暂无历史</string>
+    <string name="search_placeholder">搜索...</string>
+    <string name="manual_login_required">需要手动登录</string>
+    <string name="desktop_login_tip">桌面端由于系统限制需要手动登录。</string>
+    <string name="login_step_1">1. 点击“打开浏览器”登录 music.163.com</string>
+    <string name="login_step_2">2. 按说明复制 Cookie</string>
+    <string name="login_step_3">3. 在输入框中手动粘贴</string>
+    <string name="open_browser">打开浏览器</string>
+    <string name="lyrics_settings">歌词设置</string>
+    <string name="font_size">字体大小</string>
+    <string name="blur_intensity">模糊强度</string>
+    <string name="font_family">字体</string>
+    <string name="cookie_tutorial_title">如何获取 Cookie（Chromium 浏览器）</string>
+    <string name="cookie_tutorial_body">1. 在浏览器登录 music.163.com。\n2. 打开开发者工具（F12）-> Network。\n3. 选择 Fetch/XHR 过滤。\n4. 点击“每日推荐”或刷新。\n5. 找到任意请求（如 songs?csrf_token）。\n6. 在 Headers -> Request Headers 中复制 cookie。\n7. 在下方粘贴。</string>
 </resources>
-

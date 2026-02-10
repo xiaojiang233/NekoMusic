@@ -43,7 +43,11 @@ data class Playlist(
     val canDislike: Boolean? = null,
     val trackNumberUpdateTime: Long? = null,
     val playCount: Long? = null,
-    val trackCount: Int,
+    val trackCount: Int = 0,
     val highQuality: Boolean? = null,
-    val alg: String? = null
+    val alg: String? = null,
+    val creator: UserProfile? = null,
+    val userId: Long? = null,
+    val subscribed: Boolean? = null,
+    val specialType: Int = 0 // 0: normal, 5: favorites
 )

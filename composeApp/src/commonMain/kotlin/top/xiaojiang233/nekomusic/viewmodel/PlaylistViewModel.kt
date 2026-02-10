@@ -20,7 +20,8 @@ data class PlaylistUiState(
     val playlist: PlaylistDetail? = null,
     val tracks: List<Song> = emptyList(),
     val error: String? = null,
-    val hasMore: Boolean = false
+    val hasMore: Boolean = false,
+    val currentUserId: Long = 0
 )
 
 class PlaylistViewModel : ViewModel() {
@@ -30,6 +31,23 @@ class PlaylistViewModel : ViewModel() {
     private var allTrackIds: List<TrackId> = emptyList()
     private var currentOffset = 0
     private val pageSize = 50
+
+    init {
+        // Try to get current user ID
+        viewModelScope.launch {
+            try {
+                // We should cache this or get from SettingsManager if stored?
+                // For now, simple fetch if not expensive, or better:
+                // Since this might be called frequently, maybe we store UID in Settings?
+                // Re-using NeteaseApi.getLoginStatus() is okay-ish.
+                val status = NeteaseApi.getLoginStatus()
+                println("PlaylistViewModel: Current user ID: ${status.data.profile?.userId}")
+                _uiState.value = _uiState.value.copy(currentUserId = status.data.profile?.userId ?: 0)
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+    }
 
     fun loadPlaylist(id: Long) {
         viewModelScope.launch {

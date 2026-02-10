@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -16,8 +17,12 @@ kotlin {
         }
     }
     
-    jvm()
-    
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
+
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
@@ -61,14 +66,21 @@ kotlin {
             implementation(libs.ktor.client.cio)
 
             // JavaFX dependencies
-            implementation("org.openjfx:javafx-base:21.0.1:win")
-            implementation("org.openjfx:javafx-graphics:21.0.1:win")
-            implementation("org.openjfx:javafx-controls:21.0.1:win")
-            implementation("org.openjfx:javafx-swing:21.0.1:win")
-            implementation("org.openjfx:javafx-media:21.0.1:win")
+            val javafxVersion = "21.0.1"
+            val osName = System.getProperty("os.name").lowercase()
+            val platform = when {
+                osName.contains("win") -> "win"
+                osName.contains("mac") -> "mac"
+                osName.contains("linux") -> "linux"
+                else -> "linux"
+            }
+
+            listOf("base", "graphics", "controls", "swing", "media").forEach { module ->
+                implementation("org.openjfx:javafx-$module:$javafxVersion:$platform")
+            }
 
             // Global Hotkeys for SMTC (Best effort)
-            implementation("com.github.kwhat:jnativehook:2.2.2")
+            // implementation("com.github.kwhat:jnativehook:2.2.2")
         }
     }
 }
@@ -108,10 +120,64 @@ compose.desktop {
     application {
         mainClass = "top.xiaojiang233.nekomusic.MainKt"
 
+        // 确保所有运行时依赖（包括 SPI）都被包含
+        buildTypes.release.proguard {
+            isEnabled.set(false)
+        }
+
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "top.xiaojiang233.nekomusic"
+            targetFormats(TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
+
+            packageName = "NekoMusic"
             packageVersion = "1.0.0"
+            description = "第三方音乐播放器"
+            copyright = "© 2026 xiaojiang233"
+            vendor = "xiaojiang233"
+
+            modules(
+                "java.sql",
+                "jdk.unsupported",
+                "java.management",
+                "java.naming",
+                "java.prefs",
+                "jdk.crypto.ec",
+                "java.desktop",
+                "java.logging"  // coroutines 需要
+            )
+
+            windows {
+                iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
+                menuGroup = "NekoMusic"
+                upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                perUserInstall = true
+                dirChooser = true
+            }
+
+            linux {
+                iconFile.set(project.file("src/jvmMain/resources/icon.png"))
+                packageName = "nekomusic"
+                menuGroup = "AudioVideo"
+                appCategory = "Audio"
+            }
+
+            jvmArgs += listOf(
+                "-Dskiko.renderApi=OPENGL",
+                "-Xmx512m",
+                "-Dnekomusic.log.dir=\${user.home}/.nekomusic/logs"
+            )
         }
     }
+}
+
+// Convenience tasks
+tasks.register("packageWindows") {
+    group = "distribution"
+    description = "Build Windows MSI"
+    dependsOn("packageMsi")
+}
+
+tasks.register("packageLinux") {
+    group = "distribution"
+    description = "Build Linux DEB + RPM"
+    dependsOn("packageDeb", "packageRpm")
 }

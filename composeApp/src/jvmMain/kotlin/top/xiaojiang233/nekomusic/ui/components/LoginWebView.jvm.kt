@@ -8,6 +8,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import nekomusic.composeapp.generated.resources.Res
+import nekomusic.composeapp.generated.resources.cancel
+import nekomusic.composeapp.generated.resources.desktop_login_tip
+import nekomusic.composeapp.generated.resources.login_step_1
+import nekomusic.composeapp.generated.resources.login_step_2
+import nekomusic.composeapp.generated.resources.login_step_3
+import nekomusic.composeapp.generated.resources.manual_login_required
+import nekomusic.composeapp.generated.resources.open_browser
+import org.jetbrains.compose.resources.stringResource
 import java.awt.Desktop
 import java.net.URI
 
@@ -18,13 +27,13 @@ actual fun LoginWebView(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Manual Login Required") },
+        title = { Text(stringResource(Res.string.manual_login_required)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Desktop version requires manual login due to system limitations.")
-                Text("1. Click 'Open Browser' to log in at music.163.com")
-                Text("2. Copy the cookie as per instructions.")
-                Text("3. Paste it in the input field manually.")
+                Text(stringResource(Res.string.desktop_login_tip))
+                Text(stringResource(Res.string.login_step_1))
+                Text(stringResource(Res.string.login_step_2))
+                Text(stringResource(Res.string.login_step_3))
             }
         },
         confirmButton = {
@@ -38,15 +47,13 @@ actual fun LoginWebView(
                     onDismiss()
                 }
             ) {
-                Text("Open Browser")
+                Text(stringResource(Res.string.open_browser))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(Res.string.cancel))
             }
         }
     )
 }
-
-

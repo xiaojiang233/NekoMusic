@@ -1,10 +1,7 @@
 package top.xiaojiang233.nekomusic.player
 
-import com.github.kwhat.jnativehook.GlobalScreen
-import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent
-import com.github.kwhat.jnativehook.keyboard.NativeKeyListener
 import io.ktor.client.request.get
-import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.readRawBytes
 import javafx.application.Platform
 import javafx.embed.swing.JFXPanel
 import javafx.scene.media.Media
@@ -23,8 +20,6 @@ import kotlinx.coroutines.withContext
 import top.xiaojiang233.nekomusic.model.Song
 import top.xiaojiang233.nekomusic.network.NetworkClient
 import java.io.File
-import java.util.logging.Level
-import java.util.logging.Logger
 
 actual object AudioManager {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -43,7 +38,7 @@ actual object AudioManager {
             // Force JavaFX initialization
             try {
                 JFXPanel()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Already started or headless?
             }
             isInitialized = true
@@ -65,7 +60,7 @@ actual object AudioManager {
         downloadJob = scope.launch {
             try {
                 // Download using Ktor (authenticated)
-                val bytes = NetworkClient.client.get(url).readBytes()
+                val bytes = NetworkClient.client.get(url).readRawBytes()
                 val tempFile = withContext(Dispatchers.IO) {
                     val file = File.createTempFile("neko_", ".mp3")
                     file.deleteOnExit()
@@ -85,6 +80,11 @@ actual object AudioManager {
                         }
 
                         player.currentTimeProperty().addListener { _, _, _ -> }
+
+                        player.setOnEndOfMedia {
+                            println("MediaPlayer: End of Media")
+                            onNext?.invoke()
+                        }
 
                         player.statusProperty().addListener { _, _, newValue ->
                             val isPlaying = newValue == MediaPlayer.Status.PLAYING
@@ -109,30 +109,8 @@ actual object AudioManager {
     }
 
     init {
-        // Initialize Global Hotkeys (SMTC / Media Keys)
-        try {
-            // Disable JNativeHook logging
-            val logger = Logger.getLogger("com.github.kwhat.jnativehook")
-            logger.level = Level.OFF
-            logger.useParentHandlers = false
-
-            GlobalScreen.registerNativeHook()
-            GlobalScreen.addNativeKeyListener(object : NativeKeyListener {
-                override fun nativeKeyPressed(e: NativeKeyEvent) {
-                    when (e.keyCode) {
-                        NativeKeyEvent.VC_MEDIA_PLAY -> {
-                            if (_state.value.isPlaying) pause() else resume()
-                        }
-                        NativeKeyEvent.VC_MEDIA_STOP -> pause()
-                        NativeKeyEvent.VC_MEDIA_NEXT -> onNext?.invoke()
-                        NativeKeyEvent.VC_MEDIA_PREVIOUS -> onPrevious?.invoke()
-                    }
-                }
-            })
-        } catch (e: Exception) {
-            println("Failed to register global hotkeys: ${e.message}")
-        }
-
+        // Removed global hotkey (jnativehook) registration per request.
+        // Keep periodic updater to sync media position.
         scope.launch {
             while(true) {
                 delay(1000)
@@ -142,7 +120,7 @@ actual object AudioManager {
                             val time = p.currentTime.toMillis().toLong()
                             _state.value = _state.value.copy(currentPosition = time)
                         }
-                    } catch(e: Exception) { }
+                    } catch (_: Exception) { }
                 }
             }
         }
@@ -158,6 +136,10 @@ actual object AudioManager {
 
     actual fun seekTo(position: Long) {
         Platform.runLater { mediaPlayer?.seek(Duration.millis(position.toDouble())) }
+    }
+
+    actual fun setVolume(volume: Float) {
+        Platform.runLater { mediaPlayer?.volume = volume.toDouble() }
     }
 
     actual fun release() {

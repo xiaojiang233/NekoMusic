@@ -3,6 +3,7 @@ package top.xiaojiang233.nekomusic.settings
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -22,6 +23,7 @@ object SettingsManager {
     private val KEY_LYRICS_FONT_SIZE = floatPreferencesKey("lyrics_font_size")
     private val KEY_LYRICS_BLUR_INTENSITY = floatPreferencesKey("lyrics_blur_intensity")
     private val KEY_LYRICS_FONT_FAMILY = stringPreferencesKey("lyrics_font_family")
+    private val KEY_MAX_CACHE_SIZE = longPreferencesKey("max_cache_size")
 
     // Defaults
     private const val DEFAULT_DEBUG_API = "http://192.168.1.4:3000"
@@ -108,7 +110,7 @@ object SettingsManager {
     }
 
     fun getLyricsFontSize(): Flow<Float> = dataStore.data.map { prefs ->
-        prefs[KEY_LYRICS_FONT_SIZE] ?: 24f
+        prefs[KEY_LYRICS_FONT_SIZE] ?: 40f
     }
 
     suspend fun setLyricsFontSize(size: Float) {
@@ -129,5 +131,19 @@ object SettingsManager {
 
     suspend fun setLyricsFontFamily(family: String) {
         dataStore.edit { it[KEY_LYRICS_FONT_FAMILY] = family }
+    }
+
+    fun getMaxCacheSize(): Flow<Long> = dataStore.data.map { prefs ->
+        prefs[KEY_MAX_CACHE_SIZE] ?: (512 * 1024 * 1024L) // Default 512MB
+    }
+
+    suspend fun setMaxCacheSize(size: Long) {
+        dataStore.edit { it[KEY_MAX_CACHE_SIZE] = size }
+    }
+
+    fun clearCache() {
+        // Platform specific implementation should be injected or handled via expect/actual
+        // For now, no-op or clear coil cache if possible
+        // Ideally: ImageLoader should be configured with a singleton that can be cleared.
     }
 }

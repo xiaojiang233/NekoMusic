@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import top.xiaojiang233.nekomusic.api.NeteaseApi
 import top.xiaojiang233.nekomusic.player.AudioManager
+import top.xiaojiang233.nekomusic.player.PlaybackMode
 import top.xiaojiang233.nekomusic.player.PlaybackState
 import top.xiaojiang233.nekomusic.player.PlayerController
 import top.xiaojiang233.nekomusic.utils.LyricsParser
@@ -16,7 +17,8 @@ data class PlayerUiState(
     val playbackState: PlaybackState = PlaybackState(),
     val lyrics: List<LyricsParser.LyricLine> = emptyList(),
     val currentLineIndex: Int = 0,
-    val isLoadingLyrics: Boolean = false
+    val isLoadingLyrics: Boolean = false,
+    val playbackMode: PlaybackMode = PlaybackMode.Order
 )
 
 class PlayerViewModel : ViewModel() {
@@ -26,6 +28,12 @@ class PlayerViewModel : ViewModel() {
     private var currentSongId: Long = -1
 
     init {
+        viewModelScope.launch {
+            PlayerController.playbackMode.collect { mode ->
+                _uiState.value = _uiState.value.copy(playbackMode = mode)
+            }
+        }
+
         viewModelScope.launch {
             AudioManager.state.collect { playbackState ->
                 val currentSong = playbackState.currentSong
@@ -78,6 +86,53 @@ class PlayerViewModel : ViewModel() {
                     parsedLyrics = LyricsParser.parse(rawLrc)
                 }
 
+                // Process translations (tlyric)
+                val tlyricContent = response.tlyric?.lyric
+                if (!tlyricContent.isNullOrBlank() && parsedLyrics.isNotEmpty()) {
+                    try {
+                        val translations = LyricsParser.parse(tlyricContent.trim())
+                        // Pre-process translations to fill empty lines?
+                        // If we have [t1][t2]Text, parser gives [t1]"" [t2]"" [?]"Text".
+                        // Actually standard parser should handle [t1][t2]Text --> t1:Text, t2:Text.
+                        // If logic splits by \n, then we get empty lines.
+                        // We will try to map loosely.
+
+                        val mutableTranslations = translations.toMutableList()
+
+                        parsedLyrics = parsedLyrics.map { line ->
+                            var transText: String? = null
+
+                            // 1. Try exact match
+                            val exactIndex = mutableTranslations.indexOfFirst { it.time == line.time }
+                            if (exactIndex != -1) {
+                                transText = mutableTranslations[exactIndex].text
+                                // Don't remove if it might be used for other lines? No, translations usually 1-to-1 or 1-to-many timestamps.
+                                // If 1-to-many timestamps, we consume one instance.
+                                // But if text is empty?
+                                if (transText.isBlank()) {
+                                    // Fallback logic could go here
+                                }
+                                mutableTranslations.removeAt(exactIndex)
+                            } else {
+                                // 2. Tolerance match (e.g. within 500ms -> increased from 200)
+                                val toleranceIndex = mutableTranslations.indexOfFirst { kotlin.math.abs(it.time - line.time) < 500 }
+                                if (toleranceIndex != -1) {
+                                    transText = mutableTranslations[toleranceIndex].text
+                                    mutableTranslations.removeAt(toleranceIndex)
+                                }
+                            }
+
+                            if (!transText.isNullOrBlank()) {
+                                line.copy(translation = transText)
+                            } else {
+                                line
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("Failed to parse translations: ${e.message}")
+                    }
+                }
+
                 _uiState.value = _uiState.value.copy(
                     lyrics = parsedLyrics,
                     isLoadingLyrics = false
@@ -89,8 +144,31 @@ class PlayerViewModel : ViewModel() {
         }
     }
 
-    fun togglePlay() = PlayerController.toggle()
-    fun playNext() = PlayerController.playNext()
-    fun playPrevious() = PlayerController.playPrevious()
-    fun seekTo(pos: Long) = PlayerController.seekTo(pos)
+    fun togglePlay() {
+        if (_uiState.value.playbackState.isPlaying) {
+            AudioManager.pause()
+        } else {
+            AudioManager.resume()
+        }
+    }
+
+    fun playPrevious() {
+        PlayerController.playPrevious()
+    }
+
+    fun playNext() {
+        PlayerController.playNext()
+    }
+
+    fun seekTo(position: Long) {
+        AudioManager.seekTo(position)
+    }
+
+    fun setVolume(volume: Float) {
+        PlayerController.setVolume(volume)
+    }
+
+    fun togglePlaybackMode() {
+        PlayerController.togglePlaybackMode()
+    }
 }

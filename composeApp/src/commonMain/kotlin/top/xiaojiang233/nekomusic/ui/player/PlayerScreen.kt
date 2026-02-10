@@ -1,38 +1,66 @@
 package top.xiaojiang233.nekomusic.ui.player
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import top.xiaojiang233.nekomusic.getPlatform
+import top.xiaojiang233.nekomusic.player.PlaybackMode
 import top.xiaojiang233.nekomusic.utils.thumbnail
 import top.xiaojiang233.nekomusic.viewmodel.PlayerViewModel
+import java.awt.Robot
+import java.awt.event.KeyEvent
+
+// Define PlayerControlsState to reduce parameters
+data class PlayerControlsState(
+    val title: String,
+    val artist: String,
+    val totalDuration: Long,
+    val currentPosition: Long,
+    val isDragging: Boolean,
+    val sliderPosition: Float,
+    val isPlaying: Boolean,
+    val playbackMode: PlaybackMode,
+    val isLandscape: Boolean
+)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -44,7 +72,8 @@ fun PlayerScreen(
     val isPlaying = uiState.playbackState.isPlaying
     val currentPosition = uiState.playbackState.currentPosition
     val totalDuration = uiState.playbackState.duration
-    val song = uiState.playbackState.currentSong ?: return // Should handle empty state better? For overlay ok.
+    val playbackMode = uiState.playbackMode // Add this to retrieve mode from UI state
+    val song = uiState.playbackState.currentSong ?: return
 
     // Local slider state
     var sliderPosition by remember { mutableFloatStateOf(0f) }
@@ -60,17 +89,10 @@ fun PlayerScreen(
     val title = song.name
     val artist = song.ar.joinToString(", ") { it.name }
 
-    // Hardcoded logic for now (no wearable/config check ported purely)
-    // Assuming standard mobile/desktop layout
-    // Original Nekoplayer handles Landscape logic differently. I'll stick to Pager for Portrait default.
-    // If desktop (wide), Nekoplayer used `if (isLandscape && !isWearable) { Row ... }`.
-    // I can replicate that if I can detect orientation/width.
-    // `BoxWithConstraints` is better for Multiplatform.
-
+    // Wrap in BoxWithConstraints for layout queries
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isLandscape = maxWidth > maxHeight
+         val isLandscape = maxWidth > maxHeight
 
-        // Single root Box: background (blur), dark overlay, content and top-right close button
         Box(modifier = Modifier.fillMaxSize()) {
             Crossfade(
                 targetState = displayAlbumArt,
@@ -85,10 +107,8 @@ fun PlayerScreen(
                 )
             }
 
-            // dark overlay to improve readability
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)))
 
-            // content (player / lyrics / pager)
             if (isLandscape) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     Column(
@@ -102,20 +122,30 @@ fun PlayerScreen(
                     ) {
                         PlayerControls(
                             displayAlbumArt = displayAlbumArt,
-                            title = title,
-                            artist = artist,
-                            totalDuration = totalDuration,
-                            currentPosition = currentPosition,
-                            isDragging = isSliderDragging,
-                            sliderPosition = sliderPosition,
-                            isPlaying = isPlaying,
-                            onValueChange = { sliderPosition = it },
-                            onValueChangeFinished = { viewModel.seekTo(sliderPosition.toLong()) },
-                            onDragChange = { dragging -> isSliderDragging = dragging },
+                            state = PlayerControlsState(
+                                title = title,
+                                artist = artist,
+                                totalDuration = totalDuration,
+                                currentPosition = currentPosition,
+                                isDragging = isSliderDragging,
+                                sliderPosition = sliderPosition,
+                                isPlaying = isPlaying,
+                                playbackMode = playbackMode,
+                                isLandscape = true
+                            ),
+                            onValueChange = {
+                                isSliderDragging = true
+                                sliderPosition = it
+                            },
+                            onValueChangeFinished = {
+                                isSliderDragging = false
+                                viewModel.seekTo(sliderPosition.toLong())
+                            },
                             onPlayPauseClick = { viewModel.togglePlay() },
                             onPreviousClick = { viewModel.playPrevious() },
                             onNextClick = { viewModel.playNext() },
-                            isLandscape = true
+                            onPlaybackModeClick = { viewModel.togglePlaybackMode() },
+                            onVolumeChange = { viewModel.setVolume(it) }
                         )
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
@@ -123,7 +153,6 @@ fun PlayerScreen(
                     }
                 }
             } else {
-                // Portrait
                 val pagerState = rememberPagerState(pageCount = { 2 })
                 HorizontalPager(state = pagerState) { page ->
                     when (page) {
@@ -135,20 +164,30 @@ fun PlayerScreen(
                             ) {
                                 PlayerControls(
                                     displayAlbumArt = displayAlbumArt,
-                                    title = title,
-                                    artist = artist,
-                                    totalDuration = totalDuration,
-                                    currentPosition = currentPosition,
-                                    isDragging = isSliderDragging,
-                                    sliderPosition = sliderPosition,
-                                    isPlaying = isPlaying,
-                                    onValueChange = { sliderPosition = it },
-                                    onValueChangeFinished = { viewModel.seekTo(sliderPosition.toLong()) },
-                                    onDragChange = { dragging -> isSliderDragging = dragging },
+                                    state = PlayerControlsState(
+                                        title = title,
+                                        artist = artist,
+                                        totalDuration = totalDuration,
+                                        currentPosition = currentPosition,
+                                        isDragging = isSliderDragging,
+                                        sliderPosition = sliderPosition,
+                                        isPlaying = isPlaying,
+                                        playbackMode = playbackMode,
+                                        isLandscape = false
+                                    ),
+                                    onValueChange = {
+                                        isSliderDragging = true
+                                        sliderPosition = it
+                                    },
+                                    onValueChangeFinished = {
+                                        isSliderDragging = false
+                                        viewModel.seekTo(sliderPosition.toLong())
+                                    },
                                     onPlayPauseClick = { viewModel.togglePlay() },
                                     onPreviousClick = { viewModel.playPrevious() },
                                     onNextClick = { viewModel.playNext() },
-                                    isLandscape = false
+                                    onPlaybackModeClick = { viewModel.togglePlaybackMode() },
+                                    onVolumeChange = { viewModel.setVolume(it) }
                                 )
                             }
                         }
@@ -159,7 +198,6 @@ fun PlayerScreen(
                 }
             }
 
-            // top-right close button
             IconButton(
                 onClick = onBack,
                 modifier = Modifier
@@ -185,31 +223,34 @@ private fun formatTime(millis: Long): String {
 }
 
 @Composable
-fun CustomProgressBar(
+fun InteractiveProgressBar(
     value: Float,
     maxValue: Float,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
-    onDragChange: (Boolean) -> Unit = {}
+    modifier: Modifier = Modifier,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    color: Color = Color.White
 ) {
     var isDragging by remember { mutableStateOf(false) }
     var dragProgress by remember { mutableFloatStateOf(0f) }
+    val isHovered by interactionSource.collectIsHoveredAsState()
 
-    LaunchedEffect(isDragging) {
-        onDragChange(isDragging)
-    }
-
-    // Sync dragProgress with value when not dragging
     LaunchedEffect(value, isDragging) {
         if (!isDragging) {
             dragProgress = if (maxValue > 0) (value / maxValue).coerceIn(0f, 1f) else 0f
         }
     }
 
+    val isActive = isHovered || isDragging
+
+    val trackHeight by animateDpAsState(if (isActive) 4.dp else 2.dp)
+    val thumbRadius by animateDpAsState(if (isActive) 6.dp else 0.dp)
+
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(30.dp)
+        modifier = modifier
+            .height(24.dp) // Narrower touch target
+            .hoverable(interactionSource)
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragStart = { offset ->
@@ -243,198 +284,420 @@ fun CustomProgressBar(
                     }
                 )
             },
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.CenterStart
     ) {
-        // Calculate dimensions based on drag state
-        val thumbRadius = if (isDragging) 6.dp else 3.dp
-        val trackHeight = if (isDragging) 2.dp else 1.dp
-
-        // Use local dragProgress when dragging, otherwise calculated fraction
         val fraction = if (isDragging) dragProgress else if (maxValue > 0) (value / maxValue).coerceIn(0f, 1f) else 0f
+        // Animate progress fraction for smooth visual updates when not dragging
+        val animatedFraction by animateFloatAsState(targetValue = fraction, animationSpec = tween(durationMillis = 220), label = "ProgressFraction")
 
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(30.dp) // Fixed height to contain the thumb
+                .height(30.dp)
         ) {
             val trackY = size.height / 2
             val trackHeightPx = trackHeight.toPx()
-            val thumbRadiusPx = thumbRadius.toPx()
             val trackCornerRadius = CornerRadius(trackHeightPx / 2)
 
-            // Background track
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.3f),
+                color = color.copy(alpha = 0.2f),
                 topLeft = Offset(0f, trackY - trackHeightPx / 2),
                 size = androidx.compose.ui.geometry.Size(size.width, trackHeightPx),
                 cornerRadius = trackCornerRadius
             )
 
-            // Progress track
-            val progressWidth = size.width * fraction
+            val progressWidth = size.width * animatedFraction
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.7f),
+                color = color.copy(alpha = 0.8f),
                 topLeft = Offset(0f, trackY - trackHeightPx / 2),
                 size = androidx.compose.ui.geometry.Size(progressWidth, trackHeightPx),
                 cornerRadius = trackCornerRadius
             )
+        }
 
-            // Thumb
-            drawCircle(
-                color = Color.White.copy(alpha = 0.9f),
-                radius = thumbRadiusPx,
-                center = Offset(x = progressWidth, y = trackY)
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+              val width = maxWidth
+              val offset = width * (if (isDragging) fraction else (if (maxValue > 0) (value / maxValue).coerceIn(0f, 1f) else 0f))
+
+             Box(
+                 modifier = Modifier
+                     .size(thumbRadius * 2)
+                     .offset(x = offset - thumbRadius)
+                     .background(color, CircleShape)
+                     .graphicsLayer {
+                         shadowElevation = 4.dp.toPx()
+                         shape = CircleShape
+                         clip = false
+                     }
+             )
+         }
+     }
+}
+
+@Composable
+fun VerticalInteractiveProgressBar(
+    value: Float,
+    maxValue: Float,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    color: Color = Color.White
+) {
+    var isDragging by remember { mutableStateOf(false) }
+    var dragProgress by remember { mutableFloatStateOf(0f) }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
+    LaunchedEffect(value, isDragging) {
+        if (!isDragging) {
+            dragProgress = if (maxValue > 0) (value / maxValue).coerceIn(0f, 1f) else 0f
+        }
+    }
+
+    val isActive = isHovered || isDragging
+    val thumbRadius by animateDpAsState(if (isActive) 6.dp else 3.dp)
+    val trackWidth by animateDpAsState(if (isActive) 2.dp else 1.dp)
+
+    Box(
+        modifier = modifier
+            .width(30.dp)
+            .hoverable(interactionSource)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragStart = { offset ->
+                        isDragging = true
+                        dragProgress = (1f - (offset.y / size.height)).coerceIn(0f, 1f)
+                        onValueChange(dragProgress * maxValue)
+                    },
+                    onDragEnd = {
+                        isDragging = false
+                        onValueChangeFinished()
+                    },
+                    onDragCancel = {
+                        isDragging = false
+                        onValueChangeFinished()
+                    }
+                ) { change, _ ->
+                    change.consume()
+                    dragProgress = (1f - (change.position.y / size.height)).coerceIn(0f, 1f)
+                    onValueChange(dragProgress * maxValue)
+                }
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { offset ->
+                        isDragging = true
+                        dragProgress = (1f - (offset.y / size.height)).coerceIn(0f, 1f)
+                        onValueChange(dragProgress * maxValue)
+                        tryAwaitRelease()
+                        isDragging = false
+                        onValueChangeFinished()
+                    }
+                )
+            },
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        val fraction = if (isDragging) dragProgress else if (maxValue > 0) (value / maxValue).coerceIn(0f, 1f) else 0f
+
+        Canvas(modifier = Modifier.fillMaxHeight().width(30.dp)) {
+            val trackX = size.width / 2
+            val trackWidthPx = trackWidth.toPx()
+
+            // Draw Track
+            drawRoundRect(
+                color = color.copy(alpha = 0.2f),
+                topLeft = Offset(trackX - trackWidthPx / 2, 0f),
+                size = androidx.compose.ui.geometry.Size(trackWidthPx, size.height),
+                cornerRadius = CornerRadius(trackWidthPx / 2)
             )
+
+            // Draw Progress
+            val progressHeight = size.height * fraction
+            drawRoundRect(
+                color = color.copy(alpha = 0.8f),
+                topLeft = Offset(trackX - trackWidthPx / 2, size.height - progressHeight),
+                size = androidx.compose.ui.geometry.Size(trackWidthPx, progressHeight),
+                cornerRadius = CornerRadius(trackWidthPx / 2)
+            )
+        }
+
+        BoxWithConstraints(modifier = Modifier.fillMaxHeight()) {
+             val h = maxHeight
+            // y position from top = (1 - fraction) * height
+             Box(
+                 modifier = Modifier
+                     .size(thumbRadius * 2)
+                     .offset(y = h * (1 - fraction) - thumbRadius)
+                     .background(color, CircleShape)
+                     .graphicsLayer {
+                         shadowElevation = 4.dp.toPx()
+                         shape = CircleShape
+                         clip = false
+                     }
+             )
         }
     }
 }
 
-
 @Composable
 fun PlayerControls(
     displayAlbumArt: Any?,
-    title: String,
-    artist: String,
-    totalDuration: Long,
-    currentPosition: Long,
-    isDragging: Boolean,
-    sliderPosition: Float,
-    isPlaying: Boolean,
+    state: PlayerControlsState,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
-    onDragChange: (Boolean) -> Unit = {},
     onPlayPauseClick: () -> Unit,
     onPreviousClick: () -> Unit,
     onNextClick: () -> Unit,
-    isLandscape: Boolean
+    onPlaybackModeClick: () -> Unit,
+    onVolumeChange: (Float) -> Unit
 ) {
-    // Dynamic sizing logic adapted for simple Compose Multiplatform
-    // Hardcoding some responsive values or relying on BoxWithConstraints in parent could work,
-    // but here trying to match visual of typical mobile player.
-    // For Landscape, album art is smaller.
+    var volume by remember { mutableFloatStateOf(0.5f) }
+    var isVolumeOpen by remember { mutableStateOf(false) }
+    var controlGap by rememberSaveable { mutableFloatStateOf(16f) }
 
-    val artSize = if (isLandscape) 200.dp else 300.dp
+    val activeSize = if (state.isLandscape) 340.dp else 460.dp
+    val inactiveSize = if (state.isLandscape) 280.dp else 360.dp
+    val targetSize = if (state.isPlaying) activeSize else inactiveSize
 
-    Crossfade(
-        targetState = displayAlbumArt,
-        label = "AlbumArtCrossfade",
-        animationSpec = tween(500)
-    ) { art ->
-        AsyncImage(
-            model = art,
-            contentDescription = "Album Art",
-            modifier = Modifier
-                .size(artSize)
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(16.dp))
-        )
-    }
-
-    Spacer(modifier = Modifier.height(32.dp))
-
-    val textShadow = Shadow(
-        color = Color.Black.copy(alpha = 0.5f),
-        offset = Offset(0f, 4f),
-        blurRadius = 8f
+    val artSize by animateDpAsState(
+        targetValue = targetSize,
+        animationSpec = tween(durationMillis = 500, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+        label = "CoverSize"
     )
 
-    Text(
-        text = title,
-        style = MaterialTheme.typography.headlineMedium.copy(color = Color.White, shadow = textShadow),
-        textAlign = TextAlign.Center
-    )
-    Text(
-        text = artist,
-        style = MaterialTheme.typography.titleMedium.copy(color = Color.White.copy(alpha = 0.8f), shadow = textShadow),
-        textAlign = TextAlign.Center
-    )
+    val animatedShadowElevation by animateDpAsState(if (state.isPlaying) 16.dp else 4.dp, label = "Shadow")
 
-    Spacer(modifier = Modifier.height(32.dp))
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Crossfade(
+            targetState = displayAlbumArt,
+            label = "AlbumArtCrossfade",
+            animationSpec = tween(500)
+        ) { art ->
+            Box(
+                modifier = Modifier
+                    .size(artSize)
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                 AsyncImage(
+                    model = art,
+                    contentDescription = "Album Art",
+                    modifier = Modifier
+                        .size(artSize)
+                        .aspectRatio(1f)
+                        .graphicsLayer {
+                            shadowElevation = animatedShadowElevation.toPx()
+                            shape = RoundedCornerShape(12.dp)
+                            clip = true
+                        }
+                        .background(Color.Transparent, RoundedCornerShape(12.dp)))
+             }
+         }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        val duration = totalDuration.coerceAtLeast(1L).toFloat()
-        // Always use sliderPosition when dragging to ensure real-time UI updates
-        val position = if (isDragging) sliderPosition else currentPosition.toFloat()
+        Spacer(modifier = Modifier.height(48.dp))
 
-        CustomProgressBar(
-            value = position,
-            maxValue = duration,
-            onValueChange = onValueChange,
-            onValueChangeFinished = onValueChangeFinished,
-            onDragChange = onDragChange
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
         ) {
             Text(
-                text = formatTime(position.toLong()),
-                style = MaterialTheme.typography.labelSmall.copy(shadow = textShadow),
-                color = Color.White.copy(alpha = 0.7f)
+                text = state.title,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                color = Color.White,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = formatTime(totalDuration),
-                style = MaterialTheme.typography.labelSmall.copy(shadow = textShadow),
-                color = Color.White.copy(alpha = 0.7f)
+                text = state.artist,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = 0.6f),
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
         }
-    }
 
-    Spacer(modifier = Modifier.height(16.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isLandscape) Arrangement.SpaceBetween else Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Simplified controls without repeat/shuffle for MVP port as per request "copy authentically" usually implies visuals + core logic
-        // But original code had them. I'll omit them for now as I don't have those in my ViewModel yet,
-        // OR add placeholders. The prompt said "copy authentically", so I should probably keep the buttons even if they don't work or wire them if I can.
-        // My ViewModel doesn't expose repeat/shuffle yet. I'll place icons but dummy click for now.
+        Spacer(modifier = Modifier.height(24.dp))
 
-        if (isLandscape) {
-             // Landscape shuffle/repeat placeholder
-             IconButton(onClick = {}) {
-                 Icon(Icons.Default.Shuffle, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
-             }
-        }
-
-        IconButton(onClick = onPreviousClick) {
-            Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", tint = Color.White)
-        }
-        IconButton(onClick = onPlayPauseClick) {
-            Icon(
-                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isPlaying) "Pause" else "Play",
-                modifier = Modifier.size(48.dp),
-                tint = Color.White
-            )
-        }
-        IconButton(onClick = onNextClick) {
-            Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = Color.White)
-        }
-
-        if (isLandscape) {
-             Spacer(modifier = Modifier.size(48.dp))
-        }
-    }
-
-    if (!isLandscape) {
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
+        // Progress bar width limits (min..max). Keep it centered on wide windows.
+        val progressMin = 280.dp
+        val progressMax = 520.dp
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val duration = state.totalDuration.coerceAtLeast(1L).toFloat()
+            val position = if (state.isDragging) state.sliderPosition else state.currentPosition.toFloat()
+
+            // Box with width constraints so the progress bar never grows beyond progressMax
+            Box(modifier = Modifier.widthIn(min = progressMin, max = progressMax).align(Alignment.CenterHorizontally)) {
+                InteractiveProgressBar(
+                    value = position,
+                    maxValue = duration,
+                    onValueChange = onValueChange,
+                    onValueChangeFinished = onValueChangeFinished,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.widthIn(max = progressMax).fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = formatTime(position.toLong()),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = formatTime(state.totalDuration),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Controls row: keep controls grouped and cap group width to the same max as the progress bar
+        Row(
+            modifier = Modifier.widthIn(max = progressMax).align(Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-             // Portrait shuffle/repeat placeholder
-             IconButton(onClick = {}) {
-                 Icon(Icons.Default.Shuffle, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
-             }
-             IconButton(onClick = {}) {
-                 Icon(Icons.Default.Repeat, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
-             }
+            val playbackModeIcon = when(state.playbackMode) {
+                PlaybackMode.LoopOne -> Icons.Default.RepeatOne
+                PlaybackMode.Shuffle -> Icons.Default.Shuffle
+                PlaybackMode.Order -> Icons.Default.Repeat
+            }
+
+            IconButton(onClick = onPlaybackModeClick) {
+                 Icon(playbackModeIcon, null, tint = if (state.playbackMode == PlaybackMode.Order) Color.White.copy(alpha = 0.6f) else Color.White)
+            }
+            IconButton(onClick = onPreviousClick, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.SkipPrevious, "Prev", tint = Color.White, modifier = Modifier.size(32.dp))
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clickable { onPlayPauseClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (state.isPlaying) "Pause" else "Play",
+                    modifier = Modifier.size(48.dp),
+                    tint = Color.White
+                )
+            }
+
+            IconButton(onClick = onNextClick, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.SkipNext, "Next", tint = Color.White, modifier = Modifier.size(32.dp))
+            }
+
+            // Volume Control
+            Box {
+                IconButton(onClick = { isVolumeOpen = true }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.VolumeUp,
+                        "Volume",
+                        tint = Color.White
+                    )
+                }
+
+                if (isVolumeOpen) {
+                    Popup(
+                        alignment = Alignment.TopCenter,
+                        onDismissRequest = { isVolumeOpen = false },
+                        offset = IntOffset(0, -20)
+                    ) {
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val isHovered by interactionSource.collectIsHoveredAsState()
+                        // Monitor dragging logic inside VerticalProgressBar manually or rely on hover delay
+                        // For simplicity, we delay close on hover exit.
+
+                        LaunchedEffect(isHovered) {
+                            if (!isHovered) {
+                                // Delay to allow mouse to move or click, but if user drags slider they might exit hover area if slider is thin.
+                                // However, pointerInput usually captures drag. But hover state might update.
+                                // We rely on user tapping out or waiting
+                                kotlinx.coroutines.delay(500)
+                                isVolumeOpen = false
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier
+                                .width(60.dp)
+                                .height(180.dp)
+                                .padding(bottom = 12.dp)
+                                .hoverable(interactionSource),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Spacer(Modifier.height(16.dp))
+                                VerticalInteractiveProgressBar(
+                                    value = volume,
+                                    maxValue = 1f,
+                                    onValueChange = {
+                                        volume = it
+                                        onVolumeChange(it)
+                                        // Keep open while changing
+                                    },
+                                    onValueChangeFinished = { },
+                                    modifier = Modifier.weight(1f),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    interactionSource = interactionSource
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    text = "${(volume * 100).toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fullscreen Button (Desktop Only)
+            if (getPlatform().name == "Desktop") {
+                IconButton(onClick = {
+                    // Simulate F11 key press for fullscreen toggle since we can't easily access WindowState here
+                    // Alternatively, we could pass a callback, but let's try AWT Robot or just adding a callback param is better.
+                    // Given the constraints and the previous main.kt having F11 handler:
+                    try {
+                        val robot = Robot()
+                        robot.keyPress(KeyEvent.VK_F11)
+                        robot.keyRelease(KeyEvent.VK_F11)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }) {
+                    Icon(
+                        Icons.Default.Fullscreen, // Or FullscreenExit if we tracked state
+                        "Fullscreen",
+                        tint = Color.White
+                    )
+                }
+            }
         }
+
+        Spacer(Modifier.height(24.dp))
+        // Volume Bar removed from here
     }
 }

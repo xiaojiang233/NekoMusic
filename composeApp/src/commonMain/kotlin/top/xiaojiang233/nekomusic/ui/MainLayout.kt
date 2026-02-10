@@ -15,9 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -36,7 +34,6 @@ fun MainLayout() {
     val navController = rememberNavController()
     // Observe player state to determine if we need bottom padding for NavHost
     val playbackState by AudioManager.state.collectAsState()
-    val isPlayerVisible = playbackState.currentSong != null
 
     var showFullPlayer by remember { mutableStateOf(false) }
 
@@ -126,7 +123,8 @@ fun MainLayout() {
                                 val playlistId = backStackEntry.arguments?.getLong("id") ?: return@composable
                                 top.xiaojiang233.nekomusic.ui.playlist.PlaylistScreen(
                                     playlistId = playlistId,
-                                    onBackClick = { navController.popBackStack() }
+                                    onBackClick = { navController.popBackStack() },
+                                    onArtistClick = { id -> navController.navigate("artist/$id") }
                                 )
                             }
                             composable(
@@ -138,6 +136,18 @@ fun MainLayout() {
                             }
                             composable("search") {
                                 top.xiaojiang233.nekomusic.ui.search.SearchScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onPlaylistClick = { id -> navController.navigate("playlist/$id") },
+                                    onArtistClick = { id -> navController.navigate("artist/$id") }
+                                )
+                            }
+                            composable(
+                                "artist/{id}",
+                                arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType })
+                            ) { backStackEntry ->
+                                val artistId = backStackEntry.arguments?.getLong("id") ?: return@composable
+                                top.xiaojiang233.nekomusic.ui.artist.ArtistScreen(
+                                    artistId = artistId,
                                     onBackClick = { navController.popBackStack() }
                                 )
                             }

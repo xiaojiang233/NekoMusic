@@ -13,6 +13,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,14 +35,20 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import top.xiaojiang233.nekomusic.model.Song
 import top.xiaojiang233.nekomusic.player.PlayerController
+import top.xiaojiang233.nekomusic.utils.FavoritesManager
 import top.xiaojiang233.nekomusic.utils.thumbnail
 import top.xiaojiang233.nekomusic.viewmodel.PlaylistViewModel
+import kotlinx.coroutines.launch
+import top.xiaojiang233.nekomusic.ui.components.AddToPlaylistDialog
+import top.xiaojiang233.nekomusic.utils.CopyHelper
+import top.xiaojiang233.nekomusic.api.NeteaseApi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistScreen(
     playlistId: Long,
     onBackClick: () -> Unit,
+    onArtistClick: (Long) -> Unit = {},
     viewModel: PlaylistViewModel = viewModel { PlaylistViewModel() }
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -45,6 +58,11 @@ fun PlaylistScreen(
     }
 
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val likedIds by FavoritesManager.likedSongIds.collectAsState()
+
+    // Retrieve subscription state from playlist details
+    val isSubscribed = uiState.playlist?.subscribed ?: false
 
     // Calculate TopBar alpha based on scroll
     val topBarAlpha by remember {
@@ -199,6 +217,22 @@ fun PlaylistScreen(
                                         Spacer(Modifier.width(8.dp))
                                         Text("Play All")
                                     }
+
+                                    // Subscription Button (Mock logic for now, ideally check if user is creator)
+                                    // Hide if playlist creator is current user
+                                    val isCreator = playlist.creator?.userId == uiState.currentUserId
+
+                                    if (!isCreator) {
+                                        Spacer(Modifier.height(8.dp))
+                                        OutlinedButton(onClick = {
+                                             scope.launch {
+                                                 NeteaseApi.subscribePlaylist(playlist.id, !isSubscribed)
+                                                 viewModel.loadPlaylist(playlistId) // Refresh
+                                             }
+                                        }) {
+                                            Text(if (isSubscribed) "Unsubscribe" else "Subscribe")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -217,9 +251,14 @@ fun PlaylistScreen(
 
                     // Songs
                     itemsIndexed(filteredTracks) { index, song ->
-                        SongListItem(index + 1, song, onClick = {
-                            PlayerController.playList(filteredTracks, index)
-                        })
+                        SongListItem(
+                            index = index + 1,
+                            song = song,
+                            onClick = { PlayerController.playList(filteredTracks, index) },
+                            onArtistClick = onArtistClick,
+                            isLiked = likedIds.contains(song.id),
+                            onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
+                        )
                     }
 
                     if (uiState.isLoadingMore) {
@@ -236,7 +275,25 @@ fun PlaylistScreen(
 }
 
 @Composable
-fun SongListItem(index: Int, song: Song, onClick: () -> Unit = {}) {
+fun SongListItem(
+    index: Int,
+    song: Song,
+    onClick: () -> Unit = {},
+    onArtistClick: ((Long) -> Unit)? = null,
+    isLiked: Boolean = false,
+    onLikeClick: ((Long) -> Unit)? = null
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    // Helper to trigger copy - in Compose usage usually triggers side effect or directly calls platform
+    // We will just use clipboard locally if possible or simple text copy
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+
+    if (showAddDialog) {
+        AddToPlaylistDialog(songId = song.id, onDismiss = { showAddDialog = false })
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -269,13 +326,32 @@ fun SongListItem(index: Int, song: Song, onClick: () -> Unit = {}) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = "${song.ar.joinToString(", ") { it.name }} - ${song.al.name}",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onArtistClick != null) {
+                    song.ar.forEachIndexed { i, artist ->
+                        Text(
+                            text = artist.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clickable { onArtistClick(artist.id) }
+                        )
+                        if (i < song.ar.size - 1) {
+                            Text(", ", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        }
+                    }
+                    Text(" - ${song.al.name}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                } else {
+                     Text(
+                        text = "${song.ar.joinToString(", ") { it.name }} - ${song.al.name}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
         }
 
         // Duration
@@ -284,6 +360,53 @@ fun SongListItem(index: Int, song: Song, onClick: () -> Unit = {}) {
             style = MaterialTheme.typography.bodySmall,
             color = Color.Gray
         )
+
+        if (onLikeClick != null) {
+            Spacer(Modifier.width(8.dp))
+            IconButton(onClick = { onLikeClick(song.id) }) {
+                Icon(
+                    imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Like",
+                    tint = if (isLiked) Color.Red else Color.Gray
+                )
+            }
+        }
+
+        // More Menu
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(Icons.Default.MoreVert, "More", tint = Color.Gray)
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Copy ID") },
+                    onClick = {
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(song.id.toString()))
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Share Link") },
+                    onClick = {
+                         clipboardManager.setText(androidx.compose.ui.text.AnnotatedString("https://music.163.com/#/song?id=${song.id}"))
+                         showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Default.Share, null) }
+                )
+                DropdownMenuItem(
+                    text = { Text("Add to Playlist") },
+                    onClick = {
+                        showMenu = false
+                        showAddDialog = true
+                    },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) }
+                )
+            }
+        }
     }
 }
 

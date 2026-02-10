@@ -11,8 +11,8 @@ import top.xiaojiang233.nekomusic.model.Playlist
 import top.xiaojiang233.nekomusic.model.UserDetailResponse
 
 data class ProfileUiState(
-    val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
+    val isLoading: Boolean = false,
     val userId: Long = 0,
     val userDetail: UserDetailResponse? = null,
     val userPlaylists: List<Playlist> = emptyList(),
@@ -73,5 +73,40 @@ class ProfileViewModel : ViewModel() {
             }
         }
     }
-}
 
+    fun addSongToPlaylist(pid: Long, songId: Long) {
+        viewModelScope.launch {
+            try {
+                NeteaseApi.addSongToPlaylist("add", pid, listOf(songId))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun deletePlaylist(pid: Long) {
+        viewModelScope.launch {
+            try {
+                val res = NeteaseApi.deletePlaylist(pid)
+                if (res.code == 200) {
+                     loadProfile() // refresh
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun createPlaylist(name: String, isPublic: Boolean) {
+        viewModelScope.launch {
+            try {
+                val res = NeteaseApi.createPlaylist(name, if (isPublic) 0 else 10)
+                if (res.code == 200) {
+                    loadProfile()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}

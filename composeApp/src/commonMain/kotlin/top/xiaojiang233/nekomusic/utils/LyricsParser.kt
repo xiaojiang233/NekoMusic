@@ -14,7 +14,8 @@ object LyricsParser {
     data class LyricLine(
         val time: Long,
         val text: String,
-        val words: List<LyricWord>? = null
+        val words: List<LyricWord>? = null,
+        val translation: String? = null
     )
 
     private val TIME_REGEX = Regex("\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})]")

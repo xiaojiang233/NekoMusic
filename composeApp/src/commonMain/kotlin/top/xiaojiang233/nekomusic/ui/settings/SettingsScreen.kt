@@ -24,6 +24,35 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import nekomusic.composeapp.generated.resources.Res
+import nekomusic.composeapp.generated.resources.about
+import nekomusic.composeapp.generated.resources.account
+import nekomusic.composeapp.generated.resources.api_url
+import nekomusic.composeapp.generated.resources.appearance
+import nekomusic.composeapp.generated.resources.change_url
+import nekomusic.composeapp.generated.resources.dark_theme
+import nekomusic.composeapp.generated.resources.logged_in
+import nekomusic.composeapp.generated.resources.login
+import nekomusic.composeapp.generated.resources.login_browser
+import nekomusic.composeapp.generated.resources.login_manual_title
+import nekomusic.composeapp.generated.resources.logout
+import nekomusic.composeapp.generated.resources.network
+import nekomusic.composeapp.generated.resources.paste_cookie
+import nekomusic.composeapp.generated.resources.quality_preference
+import nekomusic.composeapp.generated.resources.save
+import nekomusic.composeapp.generated.resources.settings_title
+import nekomusic.composeapp.generated.resources.show_banner
+import nekomusic.composeapp.generated.resources.audio_quality
+import nekomusic.composeapp.generated.resources.blur_intensity
+import nekomusic.composeapp.generated.resources.set_api_url_title
+import nekomusic.composeapp.generated.resources.retry
+import nekomusic.composeapp.generated.resources.cancel
+import nekomusic.composeapp.generated.resources.cookie_tutorial_body
+import nekomusic.composeapp.generated.resources.cookie_tutorial_title
+import nekomusic.composeapp.generated.resources.font_family
+import nekomusic.composeapp.generated.resources.font_size
+import nekomusic.composeapp.generated.resources.lyrics_settings
+import org.jetbrains.compose.resources.stringResource
 import top.xiaojiang233.nekomusic.settings.SettingsManager
 import top.xiaojiang233.nekomusic.ui.components.LoginWebView
 import top.xiaojiang233.nekomusic.viewmodel.LoginViewModel
@@ -60,12 +89,12 @@ fun SettingsScreen(
     if (showUrlDialog) {
         AlertDialog(
             onDismissRequest = { showUrlDialog = false },
-            title = { Text("Set API URL") },
+            title = { Text(stringResource(Res.string.set_api_url_title)) },
             text = {
                 OutlinedTextField(
                     value = apiUrlInput,
                     onValueChange = { apiUrlInput = it },
-                    label = { Text("API URL") },
+                    label = { Text(stringResource(Res.string.api_url)) },
                     singleLine = true
                 )
             },
@@ -77,10 +106,10 @@ fun SettingsScreen(
                             showUrlDialog = false
                         }
                     }
-                ) { Text("Save") }
+                ) { Text(stringResource(Res.string.save)) }
             },
             dismissButton = {
-                TextButton(onClick = { showUrlDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showUrlDialog = false }) { Text(stringResource(Res.string.cancel)) }
             }
         )
     }
@@ -92,10 +121,10 @@ fun SettingsScreen(
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Settings", style = MaterialTheme.typography.headlineLarge)
+        Text(stringResource(Res.string.settings_title), style = MaterialTheme.typography.headlineLarge)
 
         // --- Account Section ---
-        SettingsCard("Account") {
+        SettingsCard(stringResource(Res.string.account)) {
             if (loginState.isLoggedIn) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
@@ -107,15 +136,15 @@ fun SettingsScreen(
                     Spacer(Modifier.width(16.dp))
                     Column(Modifier.weight(1f)) {
                         Text(loginState.accountName ?: "User", style = MaterialTheme.typography.titleMedium)
-                        Text("Logged in", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Text(stringResource(Res.string.logged_in), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     }
                     Button(onClick = { viewModel.logout() }) {
-                        Text("Logout")
+                        Text(stringResource(Res.string.logout))
                     }
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text("Manual Cookie Login", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(Res.string.login_manual_title), style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(8.dp))
 
                     // Manual Tutorial text
@@ -125,7 +154,7 @@ fun SettingsScreen(
                     Button(onClick = { showWebViewLogin = true }) {
                         Icon(Icons.AutoMirrored.Filled.Login, null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Login via Built-in Browser")
+                        Text(stringResource(Res.string.login_browser))
                     }
 
                     Spacer(Modifier.height(16.dp))
@@ -137,7 +166,7 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = cookieInput,
                         onValueChange = { cookieInput = it },
-                        label = { Text("Paste Cookie Here") },
+                        label = { Text(stringResource(Res.string.paste_cookie)) },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3
                     )
@@ -152,7 +181,7 @@ fun SettingsScreen(
                             CircularProgressIndicator(Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary)
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text("Login")
+                        Text(stringResource(Res.string.login))
                     }
 
                     if (loginState.message != null) {
@@ -164,13 +193,13 @@ fun SettingsScreen(
         }
 
         // --- Appearance Section ---
-        SettingsCard("Appearance") {
+        SettingsCard(stringResource(Res.string.appearance)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Dark Theme")
+                Text(stringResource(Res.string.dark_theme))
                 Switch(
                     checked = isDark,
                     onCheckedChange = {
@@ -183,7 +212,7 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Show Banner on Home")
+                Text(stringResource(Res.string.show_banner))
                 Switch(
                     checked = showBanner,
                     onCheckedChange = {
@@ -194,7 +223,7 @@ fun SettingsScreen(
         }
 
         // --- Audio Quality Section ---
-        SettingsCard("Audio Quality") {
+        SettingsCard(stringResource(Res.string.audio_quality)) {
             val quality by SettingsManager.getAudioQuality().collectAsState(initial = "standard")
             var expanded by remember { mutableStateOf(false) }
             val qualities = listOf(
@@ -210,7 +239,7 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Quality Preference")
+                Text(stringResource(Res.string.quality_preference))
                 Box {
                     TextButton(onClick = { expanded = true }) {
                         Text(qualities.find { it.first == quality }?.second ?: quality)
@@ -231,7 +260,7 @@ fun SettingsScreen(
         }
 
         // --- Lyrics Settings Section ---
-        SettingsCard("Lyrics Settings") {
+        SettingsCard(stringResource(Res.string.lyrics_settings)) {
             val lyricsFontSize by SettingsManager.getLyricsFontSize().collectAsState(initial = 16f)
             val lyricsBlurIntensity by SettingsManager.getLyricsBlurIntensity().collectAsState(initial = 0f)
             val lyricsFontFamily by SettingsManager.getLyricsFontFamily().collectAsState(initial = "Default")
@@ -240,7 +269,7 @@ fun SettingsScreen(
             var expanded by remember { mutableStateOf(false) }
 
             Column {
-                Text("Font Size: ${lyricsFontSize.toInt()} sp")
+                Text("${stringResource(Res.string.font_size)}: ${lyricsFontSize.toInt()} sp")
                 Slider(
                     value = lyricsFontSize,
                     onValueChange = { viewModel.setLyricsFontSize(it) },
@@ -250,7 +279,7 @@ fun SettingsScreen(
 
                 Spacer(Modifier.height(16.dp))
 
-                Text("Blur Intensity: ${lyricsBlurIntensity.toInt()}")
+                Text("${stringResource(Res.string.blur_intensity)}: ${lyricsBlurIntensity.toInt()}")
                 Slider(
                     value = lyricsBlurIntensity,
                     onValueChange = { viewModel.setLyricsBlurIntensity(it) },
@@ -260,8 +289,9 @@ fun SettingsScreen(
 
                 Spacer(Modifier.height(16.dp))
 
-                Text("Font Family")
+                Text(stringResource(Res.string.font_family))
                 Box {
+                    var expanded by remember { mutableStateOf(false) }
                     TextButton(onClick = { expanded = true }) {
                         Text(lyricsFontFamily)
                     }
@@ -281,24 +311,25 @@ fun SettingsScreen(
         }
 
         // --- Network Section ---
-        SettingsCard("Network") {
+        SettingsCard(stringResource(Res.string.network)) {
             Column {
-                Text("API Base URL", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(Res.string.api_url), style = MaterialTheme.typography.labelMedium)
                 Text(currentApiUrl, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = {
                     apiUrlInput = currentApiUrl
                     showUrlDialog = true
                 }) {
-                    Text("Change URL")
+                    Text(stringResource(Res.string.change_url))
                 }
             }
         }
 
         // --- About Section ---
-        SettingsCard("About") {
-            Text("NekoMusic v1.0.0")
+        SettingsCard(stringResource(Res.string.about)) {
+            Text("NekoMusic v1.0-snapshot")
             Text("Based on Compose Multiplatform")
+            Text("By xiaojiang233")
         }
     }
 }
@@ -329,29 +360,9 @@ fun TutorialText() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Info, contentDescription = "Info", tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(8.dp))
-            Text("How to get Cookie (Chromium Browsers)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.cookie_tutorial_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(8.dp))
-        Text(buildAnnotatedString {
-            append("1. Log in to ")
-            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("music.163.com") }
-            append(" in browser.\n")
-
-            append("2. Open Developer Tools (F12) -> Network tab.\n")
-            append("3. Filter by ")
-            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Fetch/XHR") }
-            append(".\n")
-
-            append("4. Click 'Daily Recommendation' or just refresh.\n")
-            append("5. Find any request (e.g. ")
-            withStyle(SpanStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)) { append("songs?csrf_token") }
-            append(").\n")
-
-            append("6. In 'Headers' -> 'Request Headers', copy the ")
-            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("cookie") }
-            append(" value.\n")
-
-            append("7. Paste it below.")
-        }, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(Res.string.cookie_tutorial_body), style = MaterialTheme.typography.bodySmall)
     }
 }

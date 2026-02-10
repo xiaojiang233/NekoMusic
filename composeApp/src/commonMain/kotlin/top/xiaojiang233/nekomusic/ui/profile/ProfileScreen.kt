@@ -6,6 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +32,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel { ProfileViewModel() }
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showCreateDialog by remember { mutableStateOf(false) }
 
     // Auto refresh if needed, for instance if we navigate here
     LaunchedEffect(Unit) {
@@ -39,8 +44,25 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
            // Maybe a simple title or none if we want full page
+        },
+        floatingActionButton = {
+            if (uiState.isLoggedIn) {
+                FloatingActionButton(onClick = { showCreateDialog = true }) {
+                    Icon(Icons.Filled.Add, "Create Playlist")
+                }
+            }
         }
     ) { padding ->
+        if (showCreateDialog) {
+             CreatePlaylistDialog(
+                 onDismiss = { showCreateDialog = false },
+                 onConfirm = { name, isPublic ->
+                     viewModel.createPlaylist(name, isPublic)
+                     showCreateDialog = false
+                 }
+             )
+        }
+
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -67,12 +89,17 @@ fun ProfileScreen(
             } else {
                 val profile = uiState.userDetail?.profile
                 if (profile != null) {
+                    val createdPlaylists = uiState.userPlaylists.filter { it.creator?.userId == profile.userId }
+                    val subscribedPlaylists = uiState.userPlaylists.filter { it.creator?.userId != profile.userId }
+
                     ProfileContent(
                         profile = profile,
                         level = uiState.userDetail?.level ?: 0,
                         listenSongs = uiState.userDetail?.listenSongs ?: 0,
-                        playlists = uiState.userPlaylists,
-                        onPlaylistClick = onPlaylistClick // Pass through
+                        createdPlaylists = createdPlaylists,
+                        subscribedPlaylists = subscribedPlaylists,
+                        onPlaylistClick = onPlaylistClick,
+                        onDeletePlaylist = { pid -> viewModel.deletePlaylist(pid) }
                     )
                 }
             }
@@ -81,12 +108,41 @@ fun ProfileScreen(
 }
 
 @Composable
+fun CreatePlaylistDialog(onDismiss: () -> Unit, onConfirm: (String, Boolean) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var isPublic by remember { mutableStateOf(true) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Create Playlist") },
+        text = {
+            Column {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Playlist Name") })
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isPublic, onCheckedChange = { isPublic = it })
+                    Text("Public")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { if (name.isNotBlank()) onConfirm(name, isPublic) }) { Text("Create") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
 fun ProfileContent(
     profile: UserProfile,
     level: Int,
     listenSongs: Int,
-    playlists: List<Playlist>,
-    onPlaylistClick: (Long) -> Unit // Add callback
+    createdPlaylists: List<Playlist>,
+    subscribedPlaylists: List<Playlist>,
+    onPlaylistClick: (Long) -> Unit,
+    onDeletePlaylist: (Long) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -138,21 +194,43 @@ fun ProfileContent(
 
         item {
             Text(
-                "My Playlists (${playlists.size})",
+                "Created Playlists (${createdPlaylists.size})",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         }
+        items(createdPlaylists) { playlist ->
+            val canDelete = playlist.specialType != 5
+            PlaylistRowItem(
+                playlist = playlist,
+                onClick = onPlaylistClick,
+                onDelete = if (canDelete) { { onDeletePlaylist(playlist.id) } } else null
+            )
+        }
 
-        items(playlists) { playlist ->
-            PlaylistRowItem(playlist, onPlaylistClick) // Pass through
+        if (subscribedPlaylists.isNotEmpty()) {
+            item {
+                Text(
+                    "Subscribed Playlists (${subscribedPlaylists.size})",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp).padding(top = 16.dp)
+                )
+            }
+            items(subscribedPlaylists) { playlist ->
+                 // Subscribed playlists usually can't be deleted via delete API, need unsubscribe.
+                 // For now no delete action here or implement unsubscribe
+                 PlaylistRowItem(playlist, onPlaylistClick)
+            }
         }
     }
 }
 
 @Composable
-fun PlaylistRowItem(playlist: Playlist, onClick: (Long) -> Unit) { // Add callback
+fun PlaylistRowItem(playlist: Playlist, onClick: (Long) -> Unit, onDelete: (() -> Unit)? = null) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -181,6 +259,26 @@ fun PlaylistRowItem(playlist: Playlist, onClick: (Long) -> Unit) { // Add callba
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        if (onDelete != null) {
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, "More")
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Delete") },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        },
+                        leadingIcon = { Icon(Icons.Default.Delete, "Delete") }
+                    )
+                }
+            }
         }
     }
 }

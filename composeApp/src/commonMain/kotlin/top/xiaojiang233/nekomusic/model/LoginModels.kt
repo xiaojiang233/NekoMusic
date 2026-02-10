@@ -59,7 +59,7 @@ data class Account(
 data class Profile(
     val userId: Long,
     val nickname: String,
-    val avatarUrl: String,
+    val avatarUrl: String?,
     val backgroundUrl: String?,
     val signature: String?
 )

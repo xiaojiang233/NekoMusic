@@ -10,6 +10,7 @@ import top.xiaojiang233.nekomusic.api.NeteaseApi
 import top.xiaojiang233.nekomusic.model.Banner
 import top.xiaojiang233.nekomusic.model.Playlist
 import top.xiaojiang233.nekomusic.settings.SettingsManager
+import top.xiaojiang233.nekomusic.utils.FavoritesManager
 
 data class HomeUiState(
     val banners: List<Banner> = emptyList(),
@@ -49,6 +50,16 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
+                // Load favorites if logged in
+                try {
+                    val status = NeteaseApi.getLoginStatus()
+                    status.data.profile?.userId?.let { uid ->
+                        FavoritesManager.loadLikes(uid)
+                    }
+                } catch (e: Exception) {
+                    // Ignore login status check failures (e.g. offline)
+                }
+
                 // Fetch in parallel if needed, for simplicity sequential here or use async
                 val bannerResponse = NeteaseApi.getBanners()
 
