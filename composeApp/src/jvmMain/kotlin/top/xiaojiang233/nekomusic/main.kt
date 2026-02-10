@@ -1,13 +1,68 @@
 package top.xiaojiang233.nekomusic
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.window.WindowDraggableArea
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Minimize
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import top.xiaojiang233.nekomusic.settings.SettingsManager
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "NekoMusic",
-    ) {
-        App()
+fun main() {
+    System.setProperty("skiko.renderApi", "OPENGL")
+    application {
+        val windowState = rememberWindowState(width = 1280.dp, height = 800.dp)
+        val isDark by SettingsManager.isDarkTheme().collectAsState(initial = true)
+
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "NekoMusic",
+            state = windowState,
+            undecorated = true
+        ) {
+            MaterialTheme(colorScheme = if(isDark) darkColorScheme() else lightColorScheme()) {
+                Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                    WindowDraggableArea {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "NekoMusic",
+                                modifier = Modifier.padding(start = 16.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Row {
+                                IconButton(onClick = { windowState.isMinimized = true }) {
+                                    Icon(Icons.Filled.Minimize, contentDescription = "Minimize")
+                                }
+                                IconButton(onClick = ::exitApplication) {
+                                    Icon(Icons.Filled.Close, contentDescription = "Close")
+                                }
+                            }
+                        }
+                    }
+
+                    // Main Content
+                    App()
+                }
+            }
+        }
     }
 }

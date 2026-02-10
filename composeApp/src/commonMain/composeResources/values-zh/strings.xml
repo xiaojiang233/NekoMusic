@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">NekoMusic</string>
+    <string name="home">首页</string>
+    <string name="settings">设置</string>
+    <string name="profile">个人</string>
+    <string name="account">账号</string>
+    <string name="appearance">外观</string>
+    <string name="dark_theme">深色模式</string>
+    <string name="show_banner">显示横幅</string>
+    <string name="audio_quality">音质</string>
+    <string name="quality_preference">首选音质</string>
+    <string name="network">网络</string>
+    <string name="api_url">API 地址</string>
+    <string name="change_url">修改地址</string>
+    <string name="about">关于</string>
+    <string name="logout">退出登录</string>
+    <string name="login_manual_title">手动 Cookie 登录</string>
+    <string name="login_browser">使用内置浏览器登录</string>
+    <string name="paste_cookie">粘贴 Cookie</string>
+    <string name="login">登录</string>
+    <string name="standard">标准</string>
+    <string name="higher">较高</string>
+    <string name="exhigh">极高</string>
+    <string name="lossless">无损</string>
+    <string name="hires">Hi-Res</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="retry">重试</string>
+    <string name="recommended_playlists">推荐歌单</string>
+    <string name="daily_recommendations">每日推荐</string>
+    <string name="user_playlist">我的歌单</string>
+</resources>
+

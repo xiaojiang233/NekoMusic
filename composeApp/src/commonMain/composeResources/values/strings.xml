@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">NekoMusic</string>
+    <string name="home">Home</string>
+    <string name="settings">Settings</string>
+    <string name="profile">Profile</string>
+    <string name="account">Account</string>
+    <string name="appearance">Appearance</string>
+    <string name="dark_theme">Dark Theme</string>
+    <string name="show_banner">Show Banner on Home</string>
+    <string name="audio_quality">Audio Quality</string>
+    <string name="quality_preference">Quality Preference</string>
+    <string name="network">Network</string>
+    <string name="api_url">API Base URL</string>
+    <string name="change_url">Change URL</string>
+    <string name="about">About</string>
+    <string name="logout">Logout</string>
+    <string name="login_manual_title">Manual Cookie Login</string>
+    <string name="login_browser">Login via Built-in Browser</string>
+    <string name="paste_cookie">Paste Cookie Here</string>
+    <string name="login">Login</string>
+    <string name="standard">Standard</string>
+    <string name="higher">Higher</string>
+    <string name="exhigh">ExHigh</string>
+    <string name="lossless">Lossless</string>
+    <string name="hires">Hi-Res</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="retry">Retry</string>
+    <string name="recommended_playlists">Recommended Playlists</string>
+    <string name="daily_recommendations">Daily Recommendations</string>
+    <string name="user_playlist">My Playlists</string>
+</resources>
+

@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -22,6 +22,11 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.compose.webview.multiplatform)
+            implementation(libs.androidx.media3.exoplayer)
+            implementation(libs.androidx.media3.session)
+            implementation(libs.androidx.media3.ui)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -30,8 +35,22 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.uiToolingPreview)
+            implementation(libs.compose.materialIconsExtended)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
+
+            implementation(libs.navigation.compose)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
+
+            implementation(libs.datastore.preferences)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -39,6 +58,17 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.ktor.client.cio)
+
+            // JavaFX dependencies
+            implementation("org.openjfx:javafx-base:21.0.1:win")
+            implementation("org.openjfx:javafx-graphics:21.0.1:win")
+            implementation("org.openjfx:javafx-controls:21.0.1:win")
+            implementation("org.openjfx:javafx-swing:21.0.1:win")
+            implementation("org.openjfx:javafx-media:21.0.1:win")
+
+            // Global Hotkeys for SMTC (Best effort)
+            implementation("com.github.kwhat:jnativehook:2.2.2")
         }
     }
 }
