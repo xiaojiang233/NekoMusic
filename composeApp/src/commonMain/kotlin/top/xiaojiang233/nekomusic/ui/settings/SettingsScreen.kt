@@ -356,7 +356,11 @@ fun SettingsScreen(
                 "higher" to "Higher (较高)",
                 "exhigh" to "ExHigh (极高)",
                 "lossless" to "Lossless (无损)",
-                "hires" to "Hi-Res"
+                "hires" to "Hi-Res",
+                "jyeffect" to "HD Surround (高清环绕声)",
+                "sky" to "Immersive Surround (沉浸环绕声)",
+                "dolby" to "Dolby Atmos (杜比全景声)",
+                "jymaster" to "Master (超清母带)"
             )
 
             Row(

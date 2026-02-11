@@ -94,7 +94,7 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.1"
     }
     packaging {
         resources {
@@ -103,7 +103,9 @@ android {
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
     buildFeatures {
@@ -125,14 +127,18 @@ compose.desktop {
 
         // 确保所有运行时依赖（包括 SPI）都被包含
         buildTypes.release.proguard {
-            isEnabled.set(false)
+            version.set("7.2.2")
+            isEnabled.set(true)
+            optimize.set(true)
+            obfuscate.set(true)
+            configurationFiles.from(project.file("compose-desktop.pro"))
         }
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
 
             packageName = "NekoMusic"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.1"
             description = "第三方音乐播放器"
             copyright = "© 2026 xiaojiang233"
             vendor = "xiaojiang233"

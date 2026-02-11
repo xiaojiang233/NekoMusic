@@ -1,3 +1,4 @@
+@file:JvmName("AndroidTheme")
 package top.xiaojiang233.nekomusic.ui.theme
 
 import android.os.Build
@@ -16,4 +17,3 @@ actual fun getDynamicColorScheme(dark: Boolean): ColorScheme? {
         null
     }
 }
-

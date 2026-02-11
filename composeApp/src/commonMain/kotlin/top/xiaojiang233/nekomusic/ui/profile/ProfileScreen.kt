@@ -226,7 +226,8 @@ fun ProfileHeader(
             )
             Spacer(Modifier.width(24.dp))
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f) // Take remaining space
             ) {
                 Text(
                     text = profile.nickname,
@@ -254,11 +255,11 @@ fun ProfileHeader(
                     )
                 }
                 Text("Listening: $listenSongs songs", style = MaterialTheme.typography.bodySmall)
-            }
-            Spacer(Modifier.weight(1f))
-            Column(horizontalAlignment = Alignment.End) {
+
+                Spacer(Modifier.height(4.dp))
+
                 Button(onClick = onFollowsClick) {
-                    Text("Artists")
+                    Text("Following: ${profile.follows}")
                 }
             }
         }

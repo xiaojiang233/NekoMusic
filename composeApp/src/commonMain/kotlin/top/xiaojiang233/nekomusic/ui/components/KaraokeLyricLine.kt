@@ -125,7 +125,7 @@ fun KaraokeWord(
 
     Box(
         modifier = Modifier
-            .padding(end = 2.dp) // 字间距，视情况调整。原文本可能不含空格如果 words 里没有空格
+            .padding(end = 4.dp) // 字间距，视情况调整。原文本可能不含空格如果 words 里没有空格
             .graphicsLayer {
                 scaleX = animatedScale
                 scaleY = animatedScale

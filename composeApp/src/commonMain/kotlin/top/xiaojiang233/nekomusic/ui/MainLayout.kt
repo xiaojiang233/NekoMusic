@@ -72,6 +72,7 @@ fun MainLayout() {
                         }
                         composable("settings") { SettingsScreen() }
                         composable("profile") {
+                            // The ProfileScreen handles fetching.
                             ProfileScreen(
                                 onPlaylistClick = { id -> navController.navigate("playlist/$id") },
                                 onArtistClick = { id -> navController.navigate("artist/$id") },
@@ -88,7 +89,8 @@ fun MainLayout() {
                             top.xiaojiang233.nekomusic.ui.search.SearchScreen(
                                 onBackClick = { navController.popBackStack() },
                                 onPlaylistClick = { id -> navController.navigate("playlist/$id") },
-                                onArtistClick = { id -> navController.navigate("artist/$id") }
+                                onArtistClick = { id -> navController.navigate("artist/$id") },
+                                onAlbumClick = { id -> navController.navigate("album/$id") }
                             )
                         }
                         composable(
@@ -110,7 +112,11 @@ fun MainLayout() {
                             arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.LongType })
                         ) { backStackEntry ->
                             val artistId = backStackEntry.arguments?.getLong("id") ?: return@composable
-                           ArtistScreen(artistId = artistId, onBackClick = { navController.popBackStack() })
+                            ArtistScreen(
+                                artistId = artistId,
+                                onBackClick = { navController.popBackStack() },
+                                onAlbumClick = { id -> navController.navigate("album/$id") }
+                            )
                         }
                         composable(
                             "album/{id}",
@@ -227,6 +233,7 @@ fun MainLayout() {
                             }
                             composable("settings") { SettingsScreen() }
                             composable("profile") {
+                                // The ProfileScreen handles fetching.
                                 ProfileScreen(
                                     onPlaylistClick = { id -> navController.navigate("playlist/$id") },
                                     onArtistClick = { id -> navController.navigate("artist/$id") },
@@ -243,7 +250,8 @@ fun MainLayout() {
                                 top.xiaojiang233.nekomusic.ui.search.SearchScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onPlaylistClick = { id -> navController.navigate("playlist/$id") },
-                                    onArtistClick = { id -> navController.navigate("artist/$id") }
+                                    onArtistClick = { id -> navController.navigate("artist/$id") },
+                                    onAlbumClick = { id -> navController.navigate("album/$id") }
                                 )
                             }
                             composable(
@@ -267,7 +275,8 @@ fun MainLayout() {
                                 val artistId = backStackEntry.arguments?.getLong("id") ?: return@composable
                                 ArtistScreen(
                                     artistId = artistId,
-                                    onBackClick = { navController.popBackStack() }
+                                    onBackClick = { navController.popBackStack() },
+                                    onAlbumClick = { id -> navController.navigate("album/$id") }
                                 )
                             }
                             composable(

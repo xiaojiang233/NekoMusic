@@ -1,6 +1,6 @@
 package top.xiaojiang233.nekomusic.ui.player
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -44,10 +44,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import top.xiaojiang233.nekomusic.getPlatform
 import top.xiaojiang233.nekomusic.player.PlaybackMode
+import top.xiaojiang233.nekomusic.player.PlayerController.currentIndex
 import top.xiaojiang233.nekomusic.utils.thumbnail
 import top.xiaojiang233.nekomusic.viewmodel.PlayerViewModel
-import java.awt.Robot
-import java.awt.event.KeyEvent
 
 // Define PlayerControlsState to reduce parameters
 data class PlayerControlsState(
@@ -150,7 +149,15 @@ fun PlayerScreen(
                         )
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        LyricsScreen(viewModel)
+                        AnimatedContent(
+                            targetState = currentIndex,
+                            transitionSpec = {
+                                (slideInVertically { height -> height / 2 } + fadeIn()).togetherWith(slideOutVertically { height -> -height / 2 } + fadeOut())
+                            },
+                            label = "LyricsAnimation"
+                        ) { _ ->
+                            LyricsScreen(viewModel)
+                        }
                     }
                 }
             } else {
@@ -193,7 +200,15 @@ fun PlayerScreen(
                             }
                         }
                         1 -> {
-                            LyricsScreen(viewModel)
+                            AnimatedContent(
+                                targetState = currentIndex,
+                                transitionSpec = {
+                                    (slideInVertically { height -> height } + fadeIn()).togetherWith(slideOutVertically { height -> -height } + fadeOut())
+                                },
+                                label = "LyricsAnimation"
+                            ) { _ ->
+                                LyricsScreen(viewModel)
+                            }
                         }
                     }
                 }
@@ -457,8 +472,6 @@ fun PlayerControls(
 ) {
     var volume by remember { mutableFloatStateOf(0.5f) }
     var isVolumeOpen by remember { mutableStateOf(false) }
-    var controlGap by rememberSaveable { mutableFloatStateOf(16f) }
-
     val activeSize = if (state.isLandscape) 340.dp else 460.dp
     val inactiveSize = if (state.isLandscape) 280.dp else 360.dp
     val targetSize = if (state.isPlaying) activeSize else inactiveSize
@@ -681,16 +694,7 @@ fun PlayerControls(
             // Fullscreen Button (Desktop Only)
             if (getPlatform().name == "Desktop") {
                 IconButton(onClick = {
-                    // Simulate F11 key press for fullscreen toggle since we can't easily access WindowState here
-                    // Alternatively, we could pass a callback, but let's try AWT Robot or just adding a callback param is better.
-                    // Given the constraints and the previous main.kt having F11 handler:
-                    try {
-                        val robot = Robot()
-                        robot.keyPress(KeyEvent.VK_F11)
-                        robot.keyRelease(KeyEvent.VK_F11)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    // TODO: Implement platform-independent fullscreen toggle
                 }) {
                     Icon(
                         Icons.Default.Fullscreen, // Or FullscreenExit if we tracked state
