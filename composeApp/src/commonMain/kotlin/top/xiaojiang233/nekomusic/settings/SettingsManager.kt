@@ -24,6 +24,7 @@ object SettingsManager {
     private val KEY_LYRICS_BLUR_INTENSITY = floatPreferencesKey("lyrics_blur_intensity")
     private val KEY_LYRICS_FONT_FAMILY = stringPreferencesKey("lyrics_font_family")
     private val KEY_MAX_CACHE_SIZE = longPreferencesKey("max_cache_size")
+    private val KEY_THEME_SEED_COLOR = longPreferencesKey("theme_seed_color")
 
     // Defaults
     private const val DEFAULT_DEBUG_API = "http://192.168.1.4:3000"
@@ -139,6 +140,20 @@ object SettingsManager {
 
     suspend fun setMaxCacheSize(size: Long) {
         dataStore.edit { it[KEY_MAX_CACHE_SIZE] = size }
+    }
+
+    fun getThemeSeedColor(): Flow<Long?> = dataStore.data.map { prefs ->
+        prefs[KEY_THEME_SEED_COLOR] ?: 0L // 0L represents no custom color
+    }
+
+    suspend fun setThemeSeedColor(color: Long?) {
+        dataStore.edit {
+            if (color == null || color == 0L) {
+                 it.remove(KEY_THEME_SEED_COLOR)
+            } else {
+                 it[KEY_THEME_SEED_COLOR] = color
+            }
+        }
     }
 
     fun clearCache() {

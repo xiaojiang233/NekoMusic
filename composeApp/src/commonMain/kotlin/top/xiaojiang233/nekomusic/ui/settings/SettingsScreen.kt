@@ -15,6 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.Check
+import top.xiaojiang233.nekomusic.getPlatform
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -66,6 +71,7 @@ fun SettingsScreen(
 
     val isDark by SettingsManager.isDarkTheme().collectAsState(initial = false)
     val showBanner by SettingsManager.showBanner().collectAsState(initial = true)
+    val themeSeedColor by SettingsManager.getThemeSeedColor().collectAsState(initial = 0L)
     val loginState by viewModel.uiState.collectAsState()
 
     // For manual API URL editing
@@ -219,6 +225,125 @@ fun SettingsScreen(
                         scope.launch { SettingsManager.setShowBanner(it) }
                     }
                 )
+            }
+
+            // Theme Color for Desktop (or non-dynamic Android)
+            if (!getPlatform().isAndroid) { // Assuming dynamic color is default on Android, but good to have manual control too? User asked for Desktop.
+                HorizontalDivider()
+                Text("Theme Color")
+
+                val presets = listOf(
+                    Color(0xFF6750A4), // M3 Purple
+                    Color(0xFFB3261E), // Red
+                    Color(0xFF285C98), // Blue
+                    Color(0xFF3B713F), // Green
+                    Color(0xFF904D00), // Orange
+                    Color(0xFF8B418F), // Magenta
+                    Color(0xFF006874), // Cyan
+                    Color(0xFF5B6200)  // Lime
+                )
+
+                // Color Presets Row
+                Row(
+                   modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                   horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Reset Button (System Default)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                         Box(
+                             modifier = Modifier
+                                 .size(40.dp)
+                                 .clip(CircleShape)
+                                 .background(MaterialTheme.colorScheme.surfaceVariant)
+                                 .clickable { scope.launch { SettingsManager.setThemeSeedColor(0L) } }
+                                 .border(if (themeSeedColor == 0L || themeSeedColor == null) 2.dp else 0.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                             contentAlignment = Alignment.Center
+                         ) {
+                             if (themeSeedColor == 0L || themeSeedColor == null) {
+                                 Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                             }
+                         }
+                         Text("Default", style = MaterialTheme.typography.labelSmall)
+                    }
+
+                    presets.forEach { color ->
+                         val isSelected = themeSeedColor == color.toArgb().toLong()
+                         // Need to handle ARGB properly. Color.toArgb() returns Int.
+                         // SettingsManager stores Long.
+                         // Let's store consistent values.
+
+                         Box(
+                             modifier = Modifier
+                                 .size(40.dp)
+                                 .clip(CircleShape)
+                                 .background(color)
+                                 .clickable {
+                                     // Store as unsigned long to avoid confusion or just signed long from Int
+                                     scope.launch { SettingsManager.setThemeSeedColor(color.toArgb().toLong()) }
+                                 }
+                                 .then(if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier),
+                             contentAlignment = Alignment.Center
+                         ) {
+                             if (isSelected) {
+                                  Icon(Icons.Default.Check, null, tint = Color.White)
+                             }
+                         }
+                    }
+                }
+
+                // Hex Input
+                var hexInput by remember(themeSeedColor) {
+                    mutableStateOf(
+                        if (themeSeedColor != null && themeSeedColor != 0L)
+                            "#" + (themeSeedColor!!.toUInt().toString(16).padStart(8, '0').drop(2).uppercase())
+                        else ""
+                    )
+                }
+                // Note: stored long might look like 0xFF...... which is negative if cast to Int then Long.
+                // Safest to treat conversions carefully.
+                // Color(Long) expects ARGB.
+                // Let's provide a text field to enter Hex.
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = hexInput,
+                        onValueChange = {
+                            hexInput = it
+                            if (it.length == 7 && it.startsWith("#")) {
+                                try {
+                                    // Use custom parsing
+                                    val hex = it.drop(1)
+                                    if (hex.all { c -> c.isDigit() || c in "a..f" || c in "A..F" }) {
+                                       val r = hex.substring(0,2).toInt(16)
+                                       val g = hex.substring(2,4).toInt(16)
+                                       val b = hex.substring(4,6).toInt(16)
+                                       val color = Color(r,g,b)
+                                       scope.launch { SettingsManager.setThemeSeedColor(color.toArgb().toLong()) }
+                                    }
+                                } catch (e: Exception) {}
+                            }
+                        },
+                        label = { Text("Hex Color (#RRGGBB)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = {
+                         // Apply manual parse
+                         try {
+                              if (hexInput.startsWith("#") && hexInput.length == 7) {
+                                   val hex = hexInput.drop(1)
+                                   val r = hex.substring(0,2).toInt(16)
+                                   val g = hex.substring(2,4).toInt(16)
+                                   val b = hex.substring(4,6).toInt(16)
+                                   val color = Color(r,g,b)
+                                   scope.launch { SettingsManager.setThemeSeedColor(color.toArgb().toLong()) }
+                              }
+                         } catch (_: Exception) {}
+                    }) {
+                        Text("Apply")
+                    }
+                }
             }
         }
 

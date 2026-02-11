@@ -40,7 +40,6 @@
     <string name="logged_in">已登录</string>
     <string name="retry_refresh">重试 / 刷新</string>
     <string name="history">历史记录</string>
-    <string name="clear">清空</string>
     <string name="no_history">暂无历史</string>
     <string name="search_placeholder">搜索...</string>
     <string name="manual_login_required">需要手动登录</string>
@@ -55,4 +54,49 @@
     <string name="font_family">字体</string>
     <string name="cookie_tutorial_title">如何获取 Cookie（Chromium 浏览器）</string>
     <string name="cookie_tutorial_body">1. 在浏览器登录 music.163.com。\n2. 打开开发者工具（F12）-> Network。\n3. 选择 Fetch/XHR 过滤。\n4. 点击“每日推荐”或刷新。\n5. 找到任意请求（如 songs?csrf_token）。\n6. 在 Headers -> Request Headers 中复制 cookie。\n7. 在下方粘贴。</string>
+
+    <!-- NEW -->
+    <string name="please_login_first">请先登录</string>
+    <string name="create_playlist">创建歌单</string>
+    <string name="playlist_name">歌单名称</string>
+    <string name="public">公开</string>
+    <string name="create">创建</string>
+    <string name="followed_artists">关注的歌手</string>
+    <string name="unfollow">取消关注</string>
+    <string name="comments">评论</string>
+    <string name="hot_comments">热门评论</string>
+    <string name="latest_comments">最新评论</string>
+    <string name="error_format">错误：%1$s</string>
+    <string name="artists">歌手</string>
+    <string name="hot_songs">热门歌曲</string>
+    <string name="albums">专辑</string>
+    <string name="playlist_title">歌单</string>
+    <string name="play_all">播放全部</string>
+    <string name="filter_songs">筛选歌曲...</string>
+    <string name="copy_id">复制 ID</string>
+    <string name="share_link">分享链接</string>
+    <string name="add_to_playlist">添加到歌单</string>
+    <string name="delete">删除</string>
+    <string name="theme_color">主题颜色</string>
+    <string name="default_label">默认</string>
+    <string name="hex_color_label">十六进制颜色 (#RRGGBB)</string>
+    <string name="apply">应用</string>
+    <string name="about_version">NekoMusic v1.0-snapshot</string>
+    <string name="about_base">基于 Compose Multiplatform</string>
+    <string name="about_by">By xiaojiang233</string>
+    <string name="based_on_your_taste">基于你的口味</string>
+    <string name="search">搜索</string>
+    <string name="like">喜欢</string>
+    <string name="comments_desc">评论</string>
+    <string name="pause">暂停</string>
+    <string name="play">播放</string>
+    <string name="avatar">头像</string>
+    <string name="lv_format">Lv.%1$d</string>
+    <string name="id_format">ID: %1$d</string>
+    <string name="listening_format">正在听：%1$d 首</string>
+    <string name="artists_button">歌手</string>
+    <string name="playlists_label">歌单</string>
+    <string name="all_songs_label">全部歌曲</string>
+    <string name="clear">清空</string>
+    <string name="more">更多</string>
 </resources>

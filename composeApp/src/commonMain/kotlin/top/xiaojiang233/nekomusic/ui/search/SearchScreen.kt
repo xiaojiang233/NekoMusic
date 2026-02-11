@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import nekomusic.composeapp.generated.resources.Res
-import nekomusic.composeapp.generated.resources.clear
 import nekomusic.composeapp.generated.resources.history
 import nekomusic.composeapp.generated.resources.no_history
 import nekomusic.composeapp.generated.resources.search_placeholder
@@ -29,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import top.xiaojiang233.nekomusic.model.Artist
 import top.xiaojiang233.nekomusic.model.Playlist
+import top.xiaojiang233.nekomusic.model.Album
 import top.xiaojiang233.nekomusic.utils.thumbnail
 import coil3.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
@@ -44,15 +44,17 @@ fun SearchScreen(
     onBackClick: () -> Unit,
     onPlaylistClick: (Long) -> Unit = {},
     onArtistClick: (Long) -> Unit = {},
+    onAlbumClick: (Long) -> Unit = {},
     viewModel: SearchViewModel = viewModel { SearchViewModel() }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val likedIds by FavoritesManager.likedSongIds.collectAsState()
     val scope = rememberCoroutineScope()
-    val tabs = listOf("Songs", "Playlists", "Artists")
+    val tabs = listOf("Songs", "Playlists", "Artists", "Albums")
     val selectedTabIndex = when(uiState.searchType) {
         1000 -> 1
         100 -> 2
+        10 -> 3
         else -> 0
     }
 
@@ -89,6 +91,7 @@ fun SearchScreen(
                                      val type = when(index) {
                                          1 -> 1000
                                          2 -> 100
+                                         3 -> 10
                                          else -> 1
                                      }
                                      viewModel.onTabChange(type)
@@ -120,7 +123,7 @@ fun SearchScreen(
                     ) {
                         Text(stringResource(Res.string.history), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         TextButton(onClick = { viewModel.clearHistory() }) {
-                            Text(stringResource(Res.string.clear))
+                            Text("Clear")
                         }
                     }
 
@@ -168,10 +171,32 @@ fun SearchScreen(
                                 ArtistListItem(artist, onClick = { onArtistClick(artist.id) })
                             }
                         }
+                        10 -> {
+                            itemsIndexed(uiState.albumResults) { _, album ->
+                                AlbumListItem(album, onClick = { onAlbumClick(album.id) })
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun AlbumListItem(album: Album, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = album.picUrl?.thumbnail(100),
+            contentDescription = null,
+            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Crop
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(album.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
     }
 }
 

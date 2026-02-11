@@ -3,12 +3,10 @@ package top.xiaojiang233.nekomusic.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,12 +69,10 @@ fun HomeScreen(
             }
         } else if (uiState.error != null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Error: ${uiState.error}")
-                    Button(onClick = { viewModel.loadData() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = null)
-                        Text("Retry")
-                    }
+                Text(String.format(stringResource(Res.string.error_format), uiState.error))
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = { viewModel.loadData() }) {
+                    Text(stringResource(Res.string.retry))
                 }
             }
         } else {

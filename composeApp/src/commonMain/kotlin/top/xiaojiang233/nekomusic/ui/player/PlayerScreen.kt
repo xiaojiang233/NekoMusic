@@ -62,6 +62,7 @@ data class PlayerControlsState(
     val isLandscape: Boolean
 )
 
+@Suppress("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlayerScreen(
@@ -202,7 +203,8 @@ fun PlayerScreen(
                 onClick = onBack,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(16.dp)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, end = 16.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
@@ -222,6 +224,7 @@ private fun formatTime(millis: Long): String {
     return "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
 }
 
+@Suppress("UnusedBoxWithConstraintsScope")
 @Composable
 fun InteractiveProgressBar(
     value: Float,
@@ -334,6 +337,7 @@ fun InteractiveProgressBar(
      }
 }
 
+@Suppress("UnusedBoxWithConstraintsScope")
 @Composable
 fun VerticalInteractiveProgressBar(
     value: Float,

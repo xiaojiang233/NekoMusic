@@ -5,6 +5,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.common.Player
 import androidx.media3.session.MediaSession
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -14,13 +15,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import top.xiaojiang233.nekomusic.model.Song
-import top.xiaojiang233.nekomusic.NekoPlayerApplication
+import top.xiaojiang233.nekomusic.NekoApp
 
 // Use a simple Application context reference or similar.
 // Ideally, we start a Service, but for simplicity we'll wrap ExoPlayer here.
 // In a production app, AudioManager would bind to a Service.
 // We will use a static ExoPlayer instance for now.
 
+@UnstableApi
+@OptIn(UnstableApi::class)
 actual object AudioManager {
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val _state = MutableStateFlow(PlaybackState())
@@ -35,7 +38,7 @@ actual object AudioManager {
 
     private fun ensurePlayer() {
         if (_playerInitialized) return
-        val context = NekoPlayerApplication.context ?: return
+        val context = NekoApp.INSTANCE
 
         player = ExoPlayer.Builder(context).build().apply {
             addListener(object : Player.Listener {
@@ -46,6 +49,9 @@ actual object AudioManager {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_READY) {
                         _state.value = _state.value.copy(duration = duration)
+                    } else if (playbackState == Player.STATE_ENDED) {
+                        // Auto-advance to next song
+                        onNext?.invoke()
                     }
                 }
             })
@@ -130,6 +136,10 @@ actual object AudioManager {
 
     actual fun seekTo(position: Long) {
         player?.seekTo(position)
+    }
+
+    actual fun setVolume(volume: Float) {
+        player?.volume = volume
     }
 
     actual fun release() {

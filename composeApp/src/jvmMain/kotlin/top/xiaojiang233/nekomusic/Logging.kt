@@ -11,7 +11,7 @@ import java.util.logging.SimpleFormatter
 
 fun initAppLogging() {
     val logDirProp = System.getProperty("nekomusic.log.dir")
-    val defaultDir = System.getProperty("user.home") + File.separator + ".nekomusic" + File.separator + "logs"
+    val defaultDir = System.getProperty("user.dir") + File.separator + ".nekomusic" + File.separator + "logs"
     val logDir = File(logDirProp ?: defaultDir)
     try {
         if (!logDir.exists()) logDir.mkdirs()

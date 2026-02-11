@@ -1,6 +1,5 @@
 package top.xiaojiang233.nekomusic.ui.playlist
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,7 +9,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Favorite
@@ -19,6 +17,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,9 +41,9 @@ import top.xiaojiang233.nekomusic.utils.thumbnail
 import top.xiaojiang233.nekomusic.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
 import top.xiaojiang233.nekomusic.ui.components.AddToPlaylistDialog
-import top.xiaojiang233.nekomusic.utils.CopyHelper
 import top.xiaojiang233.nekomusic.api.NeteaseApi
 
+@Suppress("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistScreen(
@@ -134,137 +135,177 @@ fun PlaylistScreen(
 
             val playlist = uiState.playlist
             if (playlist != null) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    // Header
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp)
-                        ) {
-                            // Blurred Background (Could be implemented with heavy modifiers, simplified here with scrim)
-                            AsyncImage(
-                                model = playlist.coverImgUrl.thumbnail(400),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop,
-                                alpha = 0.3f
-                            )
-                            Box(
-                                Modifier.fillMaxSize().background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background),
-                                        startY = 0.0f
-                                    )
-                                )
-                            )
+                BoxWithConstraints {
+                    val isNarrowScreen = maxWidth < 600.dp
 
-                            // Content
-                            Row(
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        // Header
+                        item {
+                            Box(
                                 modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(24.dp)
-                                    .padding(bottom = 32.dp),
-                                verticalAlignment = Alignment.Bottom
+                                    .fillMaxWidth()
+                                    .height(300.dp)
                             ) {
+                                // Blurred Background (Could be implemented with heavy modifiers, simplified here with scrim)
                                 AsyncImage(
-                                    model = playlist.coverImgUrl.thumbnail(200),
-                                    contentDescription = "Cover",
-                                    modifier = Modifier.size(160.dp).clip(RoundedCornerShape(12.dp)),
-                                    contentScale = ContentScale.Crop
+                                    model = playlist.coverImgUrl.thumbnail(400),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    alpha = 0.3f
                                 )
-                                Spacer(Modifier.width(24.dp))
-                                Column {
-                                    Text(
-                                        playlist.name,
-                                        style = MaterialTheme.typography.headlineLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                Box(
+                                    Modifier.fillMaxSize().background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background),
+                                            startY = 0.0f
+                                        )
                                     )
-                                    if (playlist.creator != null) {
-                                        Spacer(Modifier.height(8.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            AsyncImage(
-                                                model = playlist.creator.avatarUrl.thumbnail(50),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(24.dp).clip(RoundedCornerShape(12.dp))
-                                            )
-                                            Spacer(Modifier.width(8.dp))
+                                )
+
+                                // Content
+                                val coverSize = if (isNarrowScreen) 120.dp else 160.dp
+                                Row(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(24.dp)
+                                        .padding(bottom = 32.dp),
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    AsyncImage(
+                                        model = playlist.coverImgUrl.thumbnail(200),
+                                        contentDescription = "Cover",
+                                        modifier = Modifier.size(coverSize).clip(RoundedCornerShape(12.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(Modifier.width(24.dp))
+                                    Column {
+                                        Text(
+                                            playlist.name,
+                                            style = if (isNarrowScreen)
+                                                MaterialTheme.typography.titleMedium
+                                            else
+                                                MaterialTheme.typography.headlineLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (playlist.creator != null) {
+                                            Spacer(Modifier.height(8.dp))
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                AsyncImage(
+                                                    model = playlist.creator.avatarUrl.thumbnail(50),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(24.dp).clip(RoundedCornerShape(12.dp))
+                                                )
+                                                Spacer(Modifier.width(8.dp))
+                                                Text(
+                                                    playlist.creator.nickname,
+                                                    style = MaterialTheme.typography.titleSmall
+                                                )
+                                            }
+                                        }
+                                        if (!playlist.description.isNullOrEmpty()) {
+                                            Spacer(Modifier.height(12.dp))
                                             Text(
-                                                playlist.creator.nickname,
-                                                style = MaterialTheme.typography.titleMedium
+                                                playlist.description,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
-                                    }
-                                    if (!playlist.description.isNullOrEmpty()) {
+
                                         Spacer(Modifier.height(12.dp))
-                                        Text(
-                                            playlist.description,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Spacer(Modifier.height(12.dp))
-                                    Button(onClick = {
-                                        PlayerController.playList(filteredTracks)
-                                    }) {
-                                        Icon(Icons.Filled.PlayArrow, null)
-                                        Spacer(Modifier.width(8.dp))
-                                        Text("Play All")
-                                    }
 
-                                    // Subscription Button (Mock logic for now, ideally check if user is creator)
-                                    // Hide if playlist creator is current user
-                                    val isCreator = playlist.creator?.userId == uiState.currentUserId
+                                        // Actions: compact on narrow screens, full buttons on wide screens
+                                        if (isNarrowScreen) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                // Play icon button
+                                                FilledIconButton(
+                                                    onClick = { PlayerController.playList(filteredTracks) },
+                                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                                    modifier = Modifier.size(44.dp)
+                                                ) {
+                                                    Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = MaterialTheme.colorScheme.onPrimary)
+                                                }
 
-                                    if (!isCreator) {
-                                        Spacer(Modifier.height(8.dp))
-                                        OutlinedButton(onClick = {
-                                             scope.launch {
-                                                 NeteaseApi.subscribePlaylist(playlist.id, !isSubscribed)
-                                                 viewModel.loadPlaylist(playlistId) // Refresh
-                                             }
-                                        }) {
-                                            Text(if (isSubscribed) "Unsubscribe" else "Subscribe")
+                                                Spacer(Modifier.width(8.dp))
+
+                                                // Subscribe / Unsubscribe as add/remove
+                                                FilledIconButton(
+                                                    onClick = {
+                                                        scope.launch {
+                                                            NeteaseApi.subscribePlaylist(playlist.id, !isSubscribed)
+                                                            viewModel.loadPlaylist(playlistId)
+                                                        }
+                                                    },
+                                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (isSubscribed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary),
+                                                    modifier = Modifier.size(44.dp)
+                                                ) {
+                                                    Icon(if (isSubscribed) Icons.Filled.Remove else Icons.Filled.Add, contentDescription = if (isSubscribed) "Unsubscribe" else "Subscribe", tint = MaterialTheme.colorScheme.onSecondary)
+                                                }
+                                            }
+                                        } else {
+                                            Button(onClick = {
+                                                PlayerController.playList(filteredTracks)
+                                            }) {
+                                                Icon(Icons.Filled.PlayArrow, null)
+                                                Spacer(Modifier.width(8.dp))
+                                                Text("Play All")
+                                            }
+
+                                            // Subscription Button (Mock logic for now, ideally check if user is creator)
+                                            // Hide if playlist creator is current user
+                                            val isCreator = playlist.creator?.userId == uiState.currentUserId
+
+                                            if (!isCreator) {
+                                                Spacer(Modifier.height(8.dp))
+                                                OutlinedButton(onClick = {
+                                                    scope.launch {
+                                                        NeteaseApi.subscribePlaylist(playlist.id, !isSubscribed)
+                                                        viewModel.loadPlaylist(playlistId) // Refresh
+                                                    }
+                                                }) {
+                                                    Text(if (isSubscribed) "Unsubscribe" else "Subscribe")
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    item {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            placeholder = { Text("Filter songs...") },
-                            leadingIcon = { Icon(Icons.Default.Search, null) },
-                            singleLine = true
-                        )
-                    }
-
-                    // Songs
-                    itemsIndexed(filteredTracks) { index, song ->
-                        SongListItem(
-                            index = index + 1,
-                            song = song,
-                            onClick = { PlayerController.playList(filteredTracks, index) },
-                            onArtistClick = onArtistClick,
-                            isLiked = likedIds.contains(song.id),
-                            onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
-                        )
-                    }
-
-                    if (uiState.isLoadingMore) {
                         item {
-                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                placeholder = { Text("Filter songs...") },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                                singleLine = true
+                            )
+                        }
+
+                        // Songs
+                        itemsIndexed(filteredTracks) { index, song ->
+                            SongListItem(
+                                index = index + 1,
+                                song = song,
+                                onClick = { PlayerController.playList(filteredTracks, index) },
+                                onArtistClick = onArtistClick,
+                                isLiked = likedIds.contains(song.id),
+                                onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
+                            )
+                        }
+
+                        if (uiState.isLoadingMore) {
+                            item {
+                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator()
+                                }
                             }
                         }
                     }
@@ -294,63 +335,115 @@ fun SongListItem(
         AddToPlaylistDialog(songId = song.id, onDismiss = { showAddDialog = false })
     }
 
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        // Detect screen width for responsive design - using this.maxWidth from BoxWithConstraintsScope
+        val isCompact = this.maxWidth < 600.dp
+
+        // Use compact sizes for narrow screens
+        val itemHeight = if (isCompact) 56.dp else 64.dp
+        val coverSize = if (isCompact) 40.dp else 48.dp
+        val indexWidth = if (isCompact) 32.dp else 40.dp
+        val horizontalPadding = if (isCompact) 12.dp else 16.dp
+        val verticalPadding = if (isCompact) 4.dp else 0.dp
+        val titleStyle = if (isCompact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge
+        val indexStyle = if (isCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium
+
+        SongListItemContent(
+            index = index,
+            song = song,
+            onClick = onClick,
+            onArtistClick = onArtistClick,
+            isLiked = isLiked,
+            onLikeClick = onLikeClick,
+            itemHeight = itemHeight,
+            coverSize = coverSize,
+            indexWidth = indexWidth,
+            horizontalPadding = horizontalPadding,
+            verticalPadding = verticalPadding,
+            titleStyle = titleStyle,
+            indexStyle = indexStyle,
+            clipboardManager = clipboardManager,
+            showMenu = showMenu,
+            onMenuChange = { showMenu = it },
+            onShowAddDialog = { showAddDialog = true }
+        )
+    }
+}
+
+@Composable
+private fun SongListItemContent(
+    index: Int,
+    song: Song,
+    onClick: () -> Unit,
+    onArtistClick: ((Long) -> Unit)?,
+    isLiked: Boolean,
+    onLikeClick: ((Long) -> Unit)?,
+    itemHeight: androidx.compose.ui.unit.Dp,
+    coverSize: androidx.compose.ui.unit.Dp,
+    indexWidth: androidx.compose.ui.unit.Dp,
+    horizontalPadding: androidx.compose.ui.unit.Dp,
+    verticalPadding: androidx.compose.ui.unit.Dp,
+    titleStyle: androidx.compose.ui.text.TextStyle,
+    indexStyle: androidx.compose.ui.text.TextStyle,
+    clipboardManager: androidx.compose.ui.platform.ClipboardManager,
+    showMenu: Boolean,
+    onMenuChange: (Boolean) -> Unit,
+    onShowAddDialog: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(itemHeight)
             .clickable { onClick() }
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp, vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "$index",
-            style = MaterialTheme.typography.bodyMedium,
+            style = indexStyle,
             color = Color.Gray,
-            modifier = Modifier.width(40.dp)
+            modifier = Modifier.width(indexWidth)
         )
 
         // Lazy load cover
         AsyncImage(
             model = song.al.picUrl.thumbnail(100),
             contentDescription = null,
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(4.dp)),
+            modifier = Modifier.size(coverSize).clip(RoundedCornerShape(4.dp)),
             contentScale = ContentScale.Crop
         )
 
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(horizontalPadding))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.name,
-                style = MaterialTheme.typography.bodyLarge,
+                style = titleStyle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (onArtistClick != null) {
-                    song.ar.forEachIndexed { i, artist ->
-                        Text(
-                            text = artist.name,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.clickable { onArtistClick(artist.id) }
-                        )
-                        if (i < song.ar.size - 1) {
-                            Text(", ", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            if (onArtistClick != null) {
+                Text(
+                    text = buildString {
+                        song.ar.forEachIndexed { i, artist ->
+                            append(artist.name)
+                            if (i < song.ar.size - 1) append(", ")
                         }
-                    }
-                    Text(" - ${song.al.name}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                } else {
-                     Text(
-                        text = "${song.ar.joinToString(", ") { it.name }} - ${song.al.name}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                        append(" - ${song.al.name}")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            } else {
+                Text(
+                    text = "${song.ar.joinToString(", ") { it.name }} - ${song.al.name}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
 
@@ -374,36 +467,36 @@ fun SongListItem(
 
         // More Menu
         Box {
-            IconButton(onClick = { showMenu = true }) {
+            IconButton(onClick = { onMenuChange(true) }) {
                 Icon(Icons.Default.MoreVert, "More", tint = Color.Gray)
             }
             DropdownMenu(
                 expanded = showMenu,
-                onDismissRequest = { showMenu = false }
+                onDismissRequest = { onMenuChange(false) }
             ) {
                 DropdownMenuItem(
                     text = { Text("Copy ID") },
                     onClick = {
                         clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(song.id.toString()))
-                        showMenu = false
+                        onMenuChange(false)
                     },
-                    leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
+                    leadingIcon = { Icon(Icons.Default.ContentCopy, "Copy ID") }
                 )
                 DropdownMenuItem(
                     text = { Text("Share Link") },
                     onClick = {
                          clipboardManager.setText(androidx.compose.ui.text.AnnotatedString("https://music.163.com/#/song?id=${song.id}"))
-                         showMenu = false
+                         onMenuChange(false)
                     },
-                    leadingIcon = { Icon(Icons.Default.Share, null) }
+                    leadingIcon = { Icon(Icons.Default.Share, "Share Link") }
                 )
                 DropdownMenuItem(
                     text = { Text("Add to Playlist") },
                     onClick = {
-                        showMenu = false
-                        showAddDialog = true
+                        onMenuChange(false)
+                        onShowAddDialog()
                     },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) }
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Add to Playlist") }
                 )
             }
         }

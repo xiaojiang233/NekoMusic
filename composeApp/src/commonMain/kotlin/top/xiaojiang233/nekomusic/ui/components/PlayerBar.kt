@@ -4,7 +4,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -12,6 +11,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,7 +30,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun PlayerBar(
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onCommentClick: (Long) -> Unit = {}
 ) {
     val state by AudioManager.state.collectAsState()
     val song = state.currentSong
@@ -110,6 +111,15 @@ fun PlayerBar(
                                 if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Like",
                                 tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // Comment Button
+                        IconButton(onClick = { onCommentClick(song.id) }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Comment,
+                                contentDescription = "Comments",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 

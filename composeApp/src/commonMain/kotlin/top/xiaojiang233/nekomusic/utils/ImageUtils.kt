@@ -1,7 +1,6 @@
 package top.xiaojiang233.nekomusic.utils
 
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.toComposeImageBitmap
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -16,12 +15,14 @@ fun decodeBase64ToImageBitmap(base64Str: String): ImageBitmap? {
         }
 
         val bytes = Base64.decode(cleanBase64)
-        org.jetbrains.skia.Image.makeFromEncoded(bytes).toComposeImageBitmap()
+        bytesToImageBitmap(bytes)
     } catch (e: Exception) {
         e.printStackTrace()
         null
     }
 }
+
+expect fun bytesToImageBitmap(bytes: ByteArray): ImageBitmap?
 
 fun String?.thumbnail(size: Int): String? {
     if (this == null) return null

@@ -2,7 +2,6 @@ package top.xiaojiang233.nekomusic.api
 
 import io.ktor.client.call.body
 import io.ktor.client.request.get
-import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import top.xiaojiang233.nekomusic.model.*
 import top.xiaojiang233.nekomusic.network.NetworkClient
@@ -77,6 +76,14 @@ object NeteaseApi {
         return request("/user/playlist", mapOf("uid" to uid, "limit" to limit, "offset" to offset))
     }
 
+    suspend fun getUserFollows(uid: Long, limit: Int = 30, offset: Int = 0): UserFollowsResponse {
+        return request("/user/follows", mapOf("uid" to uid, "limit" to limit, "offset" to offset))
+    }
+
+    suspend fun getUserFolloweds(uid: Long, limit: Int = 30, offset: Int = 0): UserFollowedsResponse {
+        return request("/user/followeds", mapOf("uid" to uid, "limit" to limit, "offset" to offset))
+    }
+
     suspend fun getPlaylistDetail(id: Long): PlaylistDetailResponse {
         return request("/playlist/detail", mapOf("id" to id))
     }
@@ -103,6 +110,23 @@ object NeteaseApi {
 
     suspend fun getArtistDetail(id: Long): ArtistDetailResponse {
         return request("/artist/detail", mapOf("id" to id))
+    }
+
+    suspend fun getArtistAlbums(id: Long, limit: Int = 30, offset: Int = 0): ArtistAlbumResponse {
+        return request("/artist/album", mapOf("id" to id, "limit" to limit, "offset" to offset))
+    }
+
+    suspend fun getArtistSublist(limit: Int = 30, offset: Int = 0): ArtistSublistResponse {
+        return request("/artist/sublist", mapOf("limit" to limit, "offset" to offset))
+    }
+
+    suspend fun subArtist(id: Long, sub: Boolean = true): SubArtistResponse {
+        val t = if (sub) 1 else 0
+        return request("/artist/sub", mapOf("id" to id, "t" to t))
+    }
+
+    suspend fun getAlbum(id: Long): AlbumDetailResponse {
+        return request("/album", mapOf("id" to id))
     }
 
     suspend fun getArtistTopSongs(id: Long): ArtistTopSongsResponse {
@@ -133,5 +157,9 @@ object NeteaseApi {
 
     suspend fun deletePlaylist(pid: Long): DeletePlaylistResponse {
         return request("/playlist/delete", mapOf("id" to pid))
+    }
+
+    suspend fun getMusicComments(id: Long, limit: Int = 20, offset: Int = 0): CommentResponse {
+        return request("/comment/music", mapOf("id" to id, "limit" to limit, "offset" to offset))
     }
 }

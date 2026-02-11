@@ -3,7 +3,6 @@ package top.xiaojiang233.nekomusic.ui.profile
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import top.xiaojiang233.nekomusic.model.Playlist
+import top.xiaojiang233.nekomusic.model.Song
 import top.xiaojiang233.nekomusic.model.UserProfile
 import top.xiaojiang233.nekomusic.utils.thumbnail
 import top.xiaojiang233.nekomusic.viewmodel.ProfileViewModel
@@ -29,6 +29,8 @@ import top.xiaojiang233.nekomusic.viewmodel.ProfileViewModel
 @Composable
 fun ProfileScreen(
     onPlaylistClick: (Long) -> Unit, // Add callback
+    onArtistClick: (Long) -> Unit,
+    onFollowsClick: () -> Unit,
     viewModel: ProfileViewModel = viewModel { ProfileViewModel() }
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -64,43 +66,49 @@ fun ProfileScreen(
         }
 
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
-            } else if (!uiState.isLoggedIn) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Please Login first")
-                    Button(onClick = { viewModel.loadProfile() }) {
-                        Text("Retry / Refresh")
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                }
+                !uiState.isLoggedIn -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Please log in first")
+                        Button(onClick = { viewModel.loadProfile() }) {
+                            Text("Retry / Refresh")
+                        }
                     }
                 }
-            } else if (uiState.error != null) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Error: ${uiState.error}")
-                    Button(onClick = { viewModel.loadProfile() }) {
-                        Text("Retry")
+                uiState.error != null -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Error: ${uiState.error}")
+                        Button(onClick = { viewModel.loadProfile() }) {
+                            Text("Retry")
+                        }
                     }
                 }
-            } else {
-                val profile = uiState.userDetail?.profile
-                if (profile != null) {
-                    val createdPlaylists = uiState.userPlaylists.filter { it.creator?.userId == profile.userId }
-                    val subscribedPlaylists = uiState.userPlaylists.filter { it.creator?.userId != profile.userId }
+                else -> {
+                    val profile = uiState.userDetail?.profile
+                    if (profile != null) {
+                        val myPlaylists = uiState.userPlaylists.filter { it.creator?.userId == profile.userId }
+                        val subscribedPlaylists = uiState.userPlaylists.filter { it.creator?.userId != profile.userId }
 
                     ProfileContent(
                         profile = profile,
                         level = uiState.userDetail?.level ?: 0,
                         listenSongs = uiState.userDetail?.listenSongs ?: 0,
-                        createdPlaylists = createdPlaylists,
+                        createdPlaylists = myPlaylists,
                         subscribedPlaylists = subscribedPlaylists,
                         onPlaylistClick = onPlaylistClick,
+                        onFollowsClick = onFollowsClick,
                         onDeletePlaylist = { pid -> viewModel.deletePlaylist(pid) }
                     )
+                    }
                 }
             }
         }
@@ -142,6 +150,7 @@ fun ProfileContent(
     createdPlaylists: List<Playlist>,
     subscribedPlaylists: List<Playlist>,
     onPlaylistClick: (Long) -> Unit,
+    onFollowsClick: () -> Unit,
     onDeletePlaylist: (Long) -> Unit
 ) {
     LazyColumn(
@@ -151,79 +160,109 @@ fun ProfileContent(
     ) {
         // Header
         item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AsyncImage(
-                        model = profile.avatarUrl.thumbnail(200),
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(Modifier.width(24.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = profile.nickname,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Badge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
-                                Text("Lv.$level", modifier = Modifier.padding(4.dp))
-                            }
-                            Text("ID: ${profile.userId}", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-                        }
-                        if (profile.signature?.isNotBlank() == true) {
-                            Text(profile.signature, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
-                        }
-                        Text("Listening: $listenSongs songs", style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
+            ProfileHeader(profile, level, listenSongs, onFollowsClick)
         }
 
         item {
-            Text(
-                "Created Playlists (${createdPlaylists.size})",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-        items(createdPlaylists) { playlist ->
-            val canDelete = playlist.specialType != 5
-            PlaylistRowItem(
-                playlist = playlist,
-                onClick = onPlaylistClick,
-                onDelete = if (canDelete) { { onDeletePlaylist(playlist.id) } } else null
-            )
+             Column {
+                 Text(
+                    "Created Playlists (${createdPlaylists.size})",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                 )
+                 Column(Modifier.padding(vertical = 16.dp)) {
+                    createdPlaylists.forEach { playlist ->
+                        PlaylistRowItem(playlist, onClick = onPlaylistClick, onDelete = { onDeletePlaylist(playlist.id) })
+                    }
+                 }
+             }
         }
 
         if (subscribedPlaylists.isNotEmpty()) {
             item {
-                Text(
-                    "Subscribed Playlists (${subscribedPlaylists.size})",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp).padding(top = 16.dp)
-                )
-            }
-            items(subscribedPlaylists) { playlist ->
-                 // Subscribed playlists usually can't be deleted via delete API, need unsubscribe.
-                 // For now no delete action here or implement unsubscribe
-                 PlaylistRowItem(playlist, onPlaylistClick)
+                 Column {
+                     Text(
+                        "Subscribed Playlists (${subscribedPlaylists.size})",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                     )
+                     Column(Modifier.padding(vertical = 16.dp)) {
+                        subscribedPlaylists.forEach { playlist ->
+                            // Subscribed playlists usually cannot be deleted by user here (only unsubscribed), passing null to onDelete hides the delete option
+                            PlaylistRowItem(playlist, onClick = onPlaylistClick, onDelete = null)
+                        }
+                     }
+                 }
             }
         }
+    }
+}
+
+@Composable
+fun ProfileHeader(
+    profile: UserProfile,
+    level: Int,
+    listenSongs: Int,
+    onFollowsClick: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = profile.avatarUrl.thumbnail(200),
+                contentDescription = "Avatar",
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(Modifier.width(24.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = profile.nickname,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Badge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
+                        Text("Lv.$level", modifier = Modifier.padding(4.dp))
+                    }
+                    Text(
+                        "ID: ${profile.userId}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+                if (profile.signature?.isNotBlank() == true) {
+                    Text(
+                        profile.signature,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2
+                    )
+                }
+                Text("Listening: $listenSongs songs", style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.End) {
+                Button(onClick = onFollowsClick) {
+                    Text("Artists")
+                }
+            }
+        }
+
     }
 }
 

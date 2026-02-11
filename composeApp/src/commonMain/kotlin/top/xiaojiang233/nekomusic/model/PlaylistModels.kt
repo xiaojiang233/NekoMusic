@@ -55,7 +55,9 @@ data class Artist(
 data class Album(
     val id: Long,
     val name: String,
-    val picUrl: String?
+    val picUrl: String?,
+    val publishTime: Long = 0,
+    val size: Int = 0
 )
 
 @Serializable
@@ -94,7 +96,9 @@ data class SearchResult(
     val playlists: List<Playlist>? = null,
     val playlistCount: Int? = null,
     val artists: List<Artist>? = null,
-    val artistCount: Int? = null
+    val artistCount: Int? = null,
+    val albums: List<Album>? = null,
+    val albumCount: Int? = null
 )
 
 @Serializable
@@ -125,7 +129,14 @@ data class ArtistDetailResponse(
 
 @Serializable
 data class ArtistDetailData(
-    val artist: ArtistDetail
+    val artist: ArtistDetail,
+    val user: ArtistUser? = null,
+    val followed: Boolean? = null // Added top-level followed status check
+)
+
+@Serializable
+data class ArtistUser(
+    val followed: Boolean = false
 )
 
 @Serializable
@@ -134,7 +145,35 @@ data class ArtistDetail(
     val name: String,
     val cover: String? = null,
     val avatar: String? = null,
-    val briefDesc: String? = null
+    val briefDesc: String? = null,
+    val followed: Boolean? = false // Added followed status
+)
+
+@Serializable
+data class ArtistAlbumResponse(
+    val hotAlbums: List<Album>,
+    val artist: Artist,
+    val code: Int
+)
+
+@Serializable
+data class AlbumDetailResponse(
+    val songs: List<Song>,
+    val album: Album,
+    val code: Int
+)
+
+@Serializable
+data class ArtistSublistResponse(
+    val data: List<Artist>,
+    val count: Int,
+    val hasMore: Boolean,
+    val code: Int
+)
+
+@Serializable
+data class SubArtistResponse(
+    val code: Int
 )
 
 @Serializable

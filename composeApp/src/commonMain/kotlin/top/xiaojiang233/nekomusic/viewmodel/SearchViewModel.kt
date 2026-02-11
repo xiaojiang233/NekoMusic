@@ -12,6 +12,7 @@ import top.xiaojiang233.nekomusic.api.NeteaseApi
 import top.xiaojiang233.nekomusic.model.Artist
 import top.xiaojiang233.nekomusic.model.Playlist
 import top.xiaojiang233.nekomusic.model.Song
+import top.xiaojiang233.nekomusic.model.Album
 import top.xiaojiang233.nekomusic.player.PlayerController
 import top.xiaojiang233.nekomusic.settings.SettingsManager
 
@@ -20,6 +21,7 @@ data class SearchUiState(
     val songResults: List<Song> = emptyList(),
     val playlistResults: List<Playlist> = emptyList(),
     val artistResults: List<Artist> = emptyList(),
+    val albumResults: List<Album> = emptyList(),
     val searchType: Int = 1,
     val history: List<String> = emptyList(),
     val isLoading: Boolean = false,
@@ -48,7 +50,8 @@ class SearchViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(
                 songResults = emptyList(),
                 playlistResults = emptyList(),
-                artistResults = emptyList()
+                artistResults = emptyList(),
+                albumResults = emptyList()
             )
             return
         }
@@ -77,6 +80,7 @@ class SearchViewModel : ViewModel() {
                          1 -> _uiState.value = _uiState.value.copy(isLoading = false, songResults = response.result.songs ?: emptyList())
                          1000 -> _uiState.value = _uiState.value.copy(isLoading = false, playlistResults = response.result.playlists ?: emptyList())
                          100 -> _uiState.value = _uiState.value.copy(isLoading = false, artistResults = response.result.artists ?: emptyList())
+                         10 -> _uiState.value = _uiState.value.copy(isLoading = false, albumResults = response.result.albums ?: emptyList())
                          else -> _uiState.value = _uiState.value.copy(isLoading = false)
                     }
                 } else {
