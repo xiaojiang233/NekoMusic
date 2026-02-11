@@ -21,10 +21,7 @@ import androidx.compose.foundation.border
 import androidx.compose.material.icons.filled.Check
 import top.xiaojiang233.nekomusic.getPlatform
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -50,7 +47,6 @@ import nekomusic.composeapp.generated.resources.show_banner
 import nekomusic.composeapp.generated.resources.audio_quality
 import nekomusic.composeapp.generated.resources.blur_intensity
 import nekomusic.composeapp.generated.resources.set_api_url_title
-import nekomusic.composeapp.generated.resources.retry
 import nekomusic.composeapp.generated.resources.cancel
 import nekomusic.composeapp.generated.resources.cookie_tutorial_body
 import nekomusic.composeapp.generated.resources.cookie_tutorial_title
