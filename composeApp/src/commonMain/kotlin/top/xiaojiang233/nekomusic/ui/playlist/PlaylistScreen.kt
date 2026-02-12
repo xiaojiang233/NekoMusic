@@ -309,21 +309,39 @@ fun PlaylistScreen(
                                 onValueChange = { searchQuery = it },
                                 label = { Text(stringResource(Res.string.filter_songs)) },
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                                leadingIcon = { Icon(Icons.Default.Filter, null) },
+                                leadingIcon = { Icon(Icons.Default.Search, null) },
                                 singleLine = true
                             )
                         }
 
                         // Songs
-                        itemsIndexed(filteredTracks) { index, song ->
-                            SongListItem(
-                                index = index + 1,
-                                song = song,
-                                onClick = { PlayerController.playList(filteredTracks, index, sourceId = playlist.id) },
-                                onArtistClick = onArtistClick,
-                                isLiked = likedIds.contains(song.id),
-                                onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
-                            )
+                        if (searchQuery.isNotEmpty()) {
+                            itemsIndexed(filteredTracks, key = { _, song -> song.id }) { index, song ->
+                                SongListItem(
+                                    index = index + 1,
+                                    song = song,
+                                    onClick = { PlayerController.playList(filteredTracks, index, sourceId = playlist.id) },
+                                    onArtistClick = onArtistClick,
+                                    isLiked = likedIds.contains(song.id),
+                                    onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
+                                )
+                            }
+                        } else {
+                            // Optimizing for large lists without filter
+                            itemsIndexed(
+                                uiState.tracks,
+                                key = { _, song -> song.id },
+                                contentType = { _, _ -> "song" }
+                            ) { index, song ->
+                                SongListItem(
+                                    index = index + 1,
+                                    song = song,
+                                    onClick = { PlayerController.playList(uiState.tracks, index, sourceId = playlist.id) },
+                                    onArtistClick = onArtistClick,
+                                    isLiked = likedIds.contains(song.id),
+                                    onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
+                                )
+                            }
                         }
 
                         if (uiState.isLoadingMore) {
