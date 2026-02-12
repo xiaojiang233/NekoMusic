@@ -60,11 +60,10 @@ fun SetupScreen(onFinished: () -> Unit) {
         Button(
             onClick = {
                 scope.launch {
-                    SettingsManager.setDarkTheme(isDark)
-                    if (apiUrl.isNotBlank()) {
-                        SettingsManager.setApiUrl(apiUrl)
-                    }
-                    SettingsManager.setFirstLaunchCompleted(true)
+                    SettingsManager.completeSetup(
+                        isDark = isDark,
+                        apiUrl = if (apiUrl.isNotBlank()) apiUrl else null
+                    )
                     onFinished()
                 }
             }

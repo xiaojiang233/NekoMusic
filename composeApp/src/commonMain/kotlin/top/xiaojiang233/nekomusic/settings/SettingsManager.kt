@@ -47,8 +47,18 @@ object SettingsManager {
         dataStore.edit { it[KEY_IS_DARK_THEME] = isDark }
     }
 
+    suspend fun completeSetup(isDark: Boolean, apiUrl: String?) {
+        dataStore.edit { prefs ->
+            prefs[KEY_IS_DARK_THEME] = isDark
+            if (apiUrl != null) {
+                prefs[KEY_API_URL] = apiUrl
+            }
+            prefs[KEY_FIRST_LAUNCH_COMPLETED] = true
+        }
+    }
+
     fun isFirstLaunchCompleted(): Flow<Boolean> = dataStore.data.map { prefs ->
-         if (getPlatform().isDebug) true else (prefs[KEY_FIRST_LAUNCH_COMPLETED] ?: false)
+         prefs[KEY_FIRST_LAUNCH_COMPLETED] ?: false
     }
 
     suspend fun setFirstLaunchCompleted(completed: Boolean) {
