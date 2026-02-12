@@ -25,6 +25,7 @@ object SettingsManager {
     private val KEY_LYRICS_FONT_FAMILY = stringPreferencesKey("lyrics_font_family")
     private val KEY_MAX_CACHE_SIZE = longPreferencesKey("max_cache_size")
     private val KEY_THEME_SEED_COLOR = longPreferencesKey("theme_seed_color")
+    private val KEY_ENABLE_SCROBBLE = booleanPreferencesKey("enable_scrobble")
 
     // Defaults
     private const val DEFAULT_DEBUG_API = "http://192.168.1.4:3000"
@@ -153,6 +154,18 @@ object SettingsManager {
             } else {
                  it[KEY_THEME_SEED_COLOR] = color
             }
+        }
+    }
+
+    fun enableScrobble(): Flow<Boolean> {
+        return dataStore.data.map { preferences ->
+            preferences[KEY_ENABLE_SCROBBLE] ?: false
+        }
+    }
+
+    suspend fun setEnableScrobble(enable: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[KEY_ENABLE_SCROBBLE] = enable
         }
     }
 

@@ -15,6 +15,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import nekomusic.composeapp.generated.resources.Res
+import nekomusic.composeapp.generated.resources.daily_recommendations
+import nekomusic.composeapp.generated.resources.back
+import nekomusic.composeapp.generated.resources.error_format
+import nekomusic.composeapp.generated.resources.retry
+import nekomusic.composeapp.generated.resources.play_all
+import org.jetbrains.compose.resources.stringResource
 import top.xiaojiang233.nekomusic.api.NeteaseApi
 import top.xiaojiang233.nekomusic.model.Song
 import top.xiaojiang233.nekomusic.player.PlayerController
@@ -71,10 +78,10 @@ fun DailySongsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Daily Recommendations") },
+                title = { Text(stringResource(Res.string.daily_recommendations)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 }
             )
@@ -87,9 +94,9 @@ fun DailySongsScreen(
         } else if (state.error != null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Error: ${state.error}")
+                    Text(stringResource(Res.string.error_format, state.error!!))
                     Button(onClick = { viewModel.loadData() }) {
-                        Text("Retry")
+                        Text(stringResource(Res.string.retry))
                     }
                 }
             }
@@ -100,7 +107,7 @@ fun DailySongsScreen(
                         modifier = Modifier.fillMaxWidth().padding(16.dp)
                     ) {
                         Text(
-                            text = "Daily Recommendations",
+                            text = stringResource(Res.string.daily_recommendations),
                             style = MaterialTheme.typography.headlineMedium
                         )
                         Spacer(Modifier.height(16.dp))
@@ -113,7 +120,7 @@ fun DailySongsScreen(
                         ) {
                             Icon(Icons.Default.PlayArrow, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Play All")
+                            Text(stringResource(Res.string.play_all))
                         }
                     }
                 }

@@ -2,22 +2,26 @@ package top.xiaojiang233.nekomusic.ui.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -26,12 +30,17 @@ import top.xiaojiang233.nekomusic.player.AudioManager
 import top.xiaojiang233.nekomusic.utils.FavoritesManager
 import top.xiaojiang233.nekomusic.utils.thumbnail
 import kotlinx.coroutines.launch
+import nekomusic.composeapp.generated.resources.Res
+import nekomusic.composeapp.generated.resources.pause
+import nekomusic.composeapp.generated.resources.play
+import nekomusic.composeapp.generated.resources.queue
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PlayerBar(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    onCommentClick: (Long) -> Unit = {}
+    onCommentClick: () -> Unit = {} // Added parameter
 ) {
     val state by AudioManager.state.collectAsState()
     val song = state.currentSong
@@ -41,13 +50,18 @@ fun PlayerBar(
     // Animate visibility of the dock
     AnimatedVisibility(
         visible = song != null,
-        enter = slideInVertically { it } + fadeIn(),
-        exit = slideOutVertically { it } + fadeOut(),
+        enter = slideInVertically(animationSpec = tween(150)) { it } + fadeIn(animationSpec = tween(150)),
+        exit = slideOutVertically(animationSpec = tween(150)) { it } + fadeOut(animationSpec = tween(150)),
         modifier = modifier.padding(16.dp) // Outer padding for floating effect
     ) {
         if (song != null) {
             val targetProgress = (if (state.duration > 0) state.currentPosition.toFloat() / state.duration.toFloat() else 0f).coerceIn(0f, 1f)
-            val progress by animateFloatAsState(targetProgress, label = "Progress")
+            val progress by animateFloatAsState(
+                targetValue = targetProgress,
+                animationSpec = tween(durationMillis = 500, easing = LinearEasing), // Smooth linear interpolation
+                label = "Progress"
+            )
+
 
             // Limit width so it won't cover full window; center it via parent alignment
             Surface(
@@ -79,7 +93,7 @@ fun PlayerBar(
                     ) {
                         // Cover
                         AsyncImage(
-                            model = song.al.picUrl.thumbnail(100),
+                            model = song.al.cover.thumbnail(100),
                             contentDescription = null,
                             modifier = Modifier.size(56.dp).clip(RoundedCornerShape(28.dp)),
                             contentScale = ContentScale.Crop
@@ -103,40 +117,44 @@ fun PlayerBar(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-
-                        // Like Button
-                        val isLiked = likedIds.contains(song.id)
-                        IconButton(onClick = { scope.launch { FavoritesManager.toggleLike(song.id) } }) {
+                        IconButton(onClick = onCommentClick) {
                             Icon(
-                                if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "Like",
-                                tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        // Comment Button
-                        IconButton(onClick = { onCommentClick(song.id) }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Comment,
+                                imageVector = Icons.AutoMirrored.Filled.Comment,
                                 contentDescription = "Comments",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        // Controls
-                        FilledIconButton(
+                        // Like Button
+                        IconButton(
                             onClick = {
-                                if (state.isPlaying) AudioManager.pause() else AudioManager.resume()
-                            },
-                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                scope.launch { FavoritesManager.toggleLike(song.id) }
+                            }
                         ) {
+                            val isLiked = likedIds.contains(song.id)
                             Icon(
-                                if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                contentDescription = if (state.isPlaying) "Pause" else "Play"
+                                imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = if (isLiked) "Unlike" else "Like",
+                                // Use Primary color for active, or standard
+                                tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        Spacer(Modifier.width(8.dp))
+                        // Play/Pause
+                        IconButton(
+                            onClick = {
+                                if (state.isPlaying) AudioManager.pause() else AudioManager.resume()
+                            },
+                            modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.primary, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (state.isPlaying) stringResource(Res.string.pause) else stringResource(Res.string.play),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+
+
                     }
                 }
             }

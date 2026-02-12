@@ -23,6 +23,13 @@ import coil3.compose.AsyncImage
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import nekomusic.composeapp.generated.resources.Res
+import nekomusic.composeapp.generated.resources.back
+import nekomusic.composeapp.generated.resources.comments
+import nekomusic.composeapp.generated.resources.error_format
+import nekomusic.composeapp.generated.resources.hot_comments
+import nekomusic.composeapp.generated.resources.latest_comments
+import org.jetbrains.compose.resources.stringResource
 import top.xiaojiang233.nekomusic.model.Comment
 import top.xiaojiang233.nekomusic.utils.thumbnail
 import top.xiaojiang233.nekomusic.viewmodel.CommentViewModel
@@ -43,10 +50,10 @@ fun CommentScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Comments") },
+                title = { Text(stringResource(Res.string.comments)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 }
             )
@@ -58,7 +65,7 @@ fun CommentScreen(
             }
         } else if (uiState.error != null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Error: ${uiState.error}")
+                Text(stringResource(Res.string.error_format, uiState.error!!))
             }
         } else {
             LazyColumn(
@@ -68,9 +75,9 @@ fun CommentScreen(
             ) {
                 if (uiState.hotComments.isNotEmpty()) {
                     item {
-                        Text("Hot Comments", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 8.dp))
+                        Text(stringResource(Res.string.hot_comments), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 8.dp))
                     }
-                    items(uiState.hotComments) { comment ->
+                    items(items = uiState.hotComments, key = { it.time }) { comment ->
                         CommentItem(comment)
                     }
                     item {
@@ -79,9 +86,9 @@ fun CommentScreen(
                 }
 
                 item {
-                    Text("Latest Comments", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 8.dp))
+                    Text(stringResource(Res.string.latest_comments), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 8.dp))
                 }
-                items(uiState.comments) { comment ->
+                items(items = uiState.comments, key = { it.time }) { comment ->
                     CommentItem(comment)
                 }
             }

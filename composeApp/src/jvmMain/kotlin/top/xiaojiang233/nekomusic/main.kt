@@ -21,6 +21,7 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import top.xiaojiang233.nekomusic.settings.SettingsManager
+import top.xiaojiang233.nekomusic.utils.LocalFullscreenHandler
 import java.awt.Dimension
 
 fun main() {
@@ -37,56 +38,69 @@ fun main() {
             title = "NekoMusic",
             state = windowState,
             undecorated = true,
+            onPreviewKeyEvent = { event ->
+                if ((event.key == Key.F11 || (event.key == Key.Escape && windowState.placement == WindowPlacement.Fullscreen))
+                    && event.type == KeyEventType.KeyUp) {
+                    windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
+                        WindowPlacement.Floating
+                    } else {
+                        WindowPlacement.Fullscreen
+                    }
+                    true
+                } else {
+                    false
+                }
+            }
         ) {
             window.minimumSize = Dimension(1024, 640)
 
-            MaterialTheme(colorScheme = if(isDark) darkColorScheme() else lightColorScheme()) {
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        .onPreviewKeyEvent { event ->
-                            if (event.key == Key.F11 && event.type == KeyEventType.KeyUp) {
-                                windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
-                                    WindowPlacement.Floating
-                                } else {
-                                    WindowPlacement.Fullscreen
-                                }
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                ) {
-                    this@Window.WindowDraggableArea {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(40.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "NekoMusic",
-                                modifier = Modifier.padding(start = 16.dp),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+            val toggleFullscreen = {
+                windowState.placement = if (windowState.placement == WindowPlacement.Fullscreen) {
+                    WindowPlacement.Floating
+                } else {
+                    WindowPlacement.Fullscreen
+                }
+            }
 
-                            Row {
-                                IconButton(onClick = { windowState.isMinimized = true }) {
-                                    Icon(Icons.Filled.Remove, contentDescription = "Minimize")
-                                }
-                                IconButton(onClick = ::exitApplication) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Close")
+            CompositionLocalProvider(LocalFullscreenHandler provides toggleFullscreen) {
+                MaterialTheme(colorScheme = if(isDark) darkColorScheme() else lightColorScheme()) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                    ) {
+                        if (windowState.placement != WindowPlacement.Fullscreen) {
+                            this@Window.WindowDraggableArea {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "NekoMusic",
+                                        modifier = Modifier.padding(start = 16.dp),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    Row {
+                                        IconButton(onClick = { windowState.isMinimized = true }) {
+                                            Icon(Icons.Filled.Remove, contentDescription = "Minimize")
+                                        }
+                                        IconButton(onClick = ::exitApplication) {
+                                            Icon(Icons.Filled.Close, contentDescription = "Close")
+                                        }
+                                    }
                                 }
                             }
                         }
+
+                        // Main Content
+                        App()
                     }
-
-                    // Main Content
-                    App()
                 }
             }
         }

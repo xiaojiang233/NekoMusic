@@ -11,6 +11,7 @@ import top.xiaojiang233.nekomusic.player.AudioManager
 import top.xiaojiang233.nekomusic.player.PlaybackMode
 import top.xiaojiang233.nekomusic.player.PlaybackState
 import top.xiaojiang233.nekomusic.player.PlayerController
+import top.xiaojiang233.nekomusic.utils.FavoritesManager
 import top.xiaojiang233.nekomusic.utils.LyricsParser
 
 data class PlayerUiState(
@@ -18,7 +19,8 @@ data class PlayerUiState(
     val lyrics: List<LyricsParser.LyricLine> = emptyList(),
     val currentLineIndex: Int = 0,
     val isLoadingLyrics: Boolean = false,
-    val playbackMode: PlaybackMode = PlaybackMode.Order
+    val playbackMode: PlaybackMode = PlaybackMode.Order,
+    val isLiked: Boolean = false
 )
 
 class PlayerViewModel : ViewModel() {
@@ -34,12 +36,27 @@ class PlayerViewModel : ViewModel() {
             }
         }
 
+        // Observer favorites changes
+        viewModelScope.launch {
+            FavoritesManager.likedSongIds.collect { likes ->
+                val currentSong = AudioManager.state.value.currentSong
+                if (currentSong != null) {
+                    val isLiked = likes.contains(currentSong.id)
+                    _uiState.value = _uiState.value.copy(isLiked = isLiked)
+                }
+            }
+        }
+
         viewModelScope.launch {
             AudioManager.state.collect { playbackState ->
                 val currentSong = playbackState.currentSong
                 if (currentSong != null && currentSong.id != currentSongId) {
                     currentSongId = currentSong.id
                     loadLyrics(currentSongId)
+
+                    // Update liked status when song changes
+                    val isLiked = FavoritesManager.isLiked(currentSongId)
+                    _uiState.value = _uiState.value.copy(isLiked = isLiked)
                 }
 
                 // Update lyrics position
@@ -170,5 +187,12 @@ class PlayerViewModel : ViewModel() {
 
     fun togglePlaybackMode() {
         PlayerController.togglePlaybackMode()
+    }
+
+    fun toggleLike() {
+        val currentSong = AudioManager.state.value.currentSong ?: return
+        viewModelScope.launch {
+            FavoritesManager.toggleLike(currentSong.id)
+        }
     }
 }

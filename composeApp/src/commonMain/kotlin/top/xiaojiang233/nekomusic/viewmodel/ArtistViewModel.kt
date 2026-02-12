@@ -18,7 +18,12 @@ data class ArtistUiState(
     val albums: List<Album> = emptyList(),
     val isSubscribed: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // All Songs Pagination
+    val allSongs: List<Song> = emptyList(),
+    val allSongsOffset: Int = 0,
+    val allSongsHasMore: Boolean = true,
+    val isLoadingAllSongs: Boolean = false
 )
 
 class ArtistViewModel : ViewModel() {
@@ -49,10 +54,18 @@ class ArtistViewModel : ViewModel() {
                      println("  > data.artist.followed: ${detailResponse.data.artist.followed}")
                      println("  > resolved isSubscribed: $isSub")
 
+                     // Fetch song details to get full info including album covers
+                     val hotSongIds = songsResponse.songs.map { it.id }
+                     val detailedHotSongs = if (hotSongIds.isNotEmpty()) {
+                         NeteaseApi.getSongDetails(hotSongIds).songs
+                     } else {
+                         emptyList()
+                     }
+
                      _uiState.value = _uiState.value.copy(
                          isLoading = false,
                          artist = detailResponse.data.artist,
-                         hotSongs = songsResponse.songs,
+                         hotSongs = detailedHotSongs,
                          albums = albumsResponse.hotAlbums,
                          isSubscribed = isSub
                      )
@@ -85,5 +98,47 @@ class ArtistViewModel : ViewModel() {
         val currentList = _uiState.value.hotSongs
         val index = currentList.indexOf(song).coerceAtLeast(0)
         PlayerController.playList(currentList, index)
+    }
+
+    fun playAllSong(song: Song) {
+        val currentList = _uiState.value.allSongs
+        val index = currentList.indexOf(song).coerceAtLeast(0)
+        PlayerController.playList(currentList, index)
+    }
+
+    fun loadMoreAllSongs() {
+        val ui = _uiState.value
+        if (ui.artist == null || !ui.allSongsHasMore || ui.isLoadingAllSongs) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingAllSongs = true)
+            try {
+                val res = NeteaseApi.getArtistSongs(
+                    id = ui.artist.id,
+                    limit = 50,
+                    offset = ui.allSongsOffset
+                )
+                if (res.code == 200) {
+                    val newSongs = res.songs
+                    val newSongIds = newSongs.map { it.id }
+                    val detailedNewSongs = if (newSongIds.isNotEmpty()) {
+                        NeteaseApi.getSongDetails(newSongIds).songs
+                    } else {
+                        emptyList()
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        allSongs = ui.allSongs + detailedNewSongs,
+                        allSongsOffset = ui.allSongsOffset + newSongs.size,
+                        allSongsHasMore = newSongs.isNotEmpty() && (ui.allSongsOffset + newSongs.size < res.total),
+                        isLoadingAllSongs = false
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoadingAllSongs = false)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.value = _uiState.value.copy(isLoadingAllSongs = false)
+            }
+        }
     }
 }

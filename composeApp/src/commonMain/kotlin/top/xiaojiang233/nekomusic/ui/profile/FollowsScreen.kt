@@ -32,7 +32,7 @@ fun FollowsScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.loadFullFollowedArtists()
+        viewModel.loadFollows()
     }
 
     Scaffold(
@@ -56,7 +56,7 @@ fun FollowsScreen(
                 contentPadding = padding,
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(uiState.followedArtists) { artist ->
+                items(items = uiState.followedArtists, key = { it.id }) { artist ->
                     ListItem(
                         headlineContent = { Text(artist.name) },
                         leadingContent = {

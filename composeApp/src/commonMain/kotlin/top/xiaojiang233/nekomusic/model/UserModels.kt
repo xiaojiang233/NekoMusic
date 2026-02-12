@@ -44,5 +44,23 @@ data class UserFollowedsResponse(
     val more: Boolean = false
 )
 
+@Serializable
+data class FollowUserResponse(
+    val code: Int,
+    val message: String? = null
+)
+
+@Serializable
+data class ListenDataTotalResponse(
+    val code: Int,
+    val data: ListenDataTotal? = null,
+    val message: String? = null
+)
+
+@Serializable
+data class ListenDataTotal(
+    val totalDuration: Long
+)
+
 // Re-using Playlist from Models.kt, assuming fields align or we might need to make properties nullable there if they vary.
 // Let's ensure Playlist in Models.kt is compatible.

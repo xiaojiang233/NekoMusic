@@ -28,8 +28,11 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import nekomusic.composeapp.generated.resources.Res
 import nekomusic.composeapp.generated.resources.about
+import nekomusic.composeapp.generated.resources.about_base
+import nekomusic.composeapp.generated.resources.about_by
 import nekomusic.composeapp.generated.resources.account
 import nekomusic.composeapp.generated.resources.api_url
+import nekomusic.composeapp.generated.resources.api_url_placeholder
 import nekomusic.composeapp.generated.resources.appearance
 import nekomusic.composeapp.generated.resources.change_url
 import nekomusic.composeapp.generated.resources.dark_theme
@@ -53,6 +56,27 @@ import nekomusic.composeapp.generated.resources.cookie_tutorial_title
 import nekomusic.composeapp.generated.resources.font_family
 import nekomusic.composeapp.generated.resources.font_size
 import nekomusic.composeapp.generated.resources.lyrics_settings
+import nekomusic.composeapp.generated.resources.theme_color
+import nekomusic.composeapp.generated.resources.default_label
+import nekomusic.composeapp.generated.resources.hex_color_label
+import nekomusic.composeapp.generated.resources.apply
+import nekomusic.composeapp.generated.resources.standard
+import nekomusic.composeapp.generated.resources.higher
+import nekomusic.composeapp.generated.resources.exhigh
+import nekomusic.composeapp.generated.resources.lossless
+import nekomusic.composeapp.generated.resources.hires
+import nekomusic.composeapp.generated.resources.jyeffect
+import nekomusic.composeapp.generated.resources.sky
+import nekomusic.composeapp.generated.resources.dolby
+import nekomusic.composeapp.generated.resources.jymaster
+import nekomusic.composeapp.generated.resources.enable_scrobble
+import nekomusic.composeapp.generated.resources.scrobble_warning
+import nekomusic.composeapp.generated.resources.debug
+import nekomusic.composeapp.generated.resources.api_url_debug
+import nekomusic.composeapp.generated.resources.open_api_debugger
+import nekomusic.composeapp.generated.resources.logged_in_as_format
+import nekomusic.composeapp.generated.resources.not_logged_in
+import nekomusic.composeapp.generated.resources.play_next
 import org.jetbrains.compose.resources.stringResource
 import top.xiaojiang233.nekomusic.settings.SettingsManager
 import top.xiaojiang233.nekomusic.ui.components.LoginWebView
@@ -60,6 +84,7 @@ import top.xiaojiang233.nekomusic.viewmodel.LoginViewModel
 
 @Composable
 fun SettingsScreen(
+    onDebugClick: () -> Unit = {},
     viewModel: LoginViewModel = viewModel { LoginViewModel() }
 ) {
     val scrollState = rememberScrollState()
@@ -226,7 +251,7 @@ fun SettingsScreen(
             // Theme Color for Desktop (or non-dynamic Android)
             if (!getPlatform().isAndroid) { // Assuming dynamic color is default on Android, but good to have manual control too? User asked for Desktop.
                 HorizontalDivider()
-                Text("Theme Color")
+                Text(stringResource(Res.string.theme_color))
 
                 val presets = listOf(
                     Color(0xFF6750A4), // M3 Purple
@@ -259,7 +284,7 @@ fun SettingsScreen(
                                  Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                              }
                          }
-                         Text("Default", style = MaterialTheme.typography.labelSmall)
+                         Text(stringResource(Res.string.default_label), style = MaterialTheme.typography.labelSmall)
                     }
 
                     presets.forEach { color ->
@@ -319,7 +344,7 @@ fun SettingsScreen(
                                 } catch (e: Exception) {}
                             }
                         },
-                        label = { Text("Hex Color (#RRGGBB)") },
+                        label = { Text(stringResource(Res.string.hex_color_label)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
@@ -337,7 +362,7 @@ fun SettingsScreen(
                               }
                          } catch (_: Exception) {}
                     }) {
-                        Text("Apply")
+                        Text(stringResource(Res.string.apply))
                     }
                 }
             }
@@ -348,15 +373,15 @@ fun SettingsScreen(
             val quality by SettingsManager.getAudioQuality().collectAsState(initial = "standard")
             var expanded by remember { mutableStateOf(false) }
             val qualities = listOf(
-                "standard" to "Standard (标准)",
-                "higher" to "Higher (较高)",
-                "exhigh" to "ExHigh (极高)",
-                "lossless" to "Lossless (无损)",
-                "hires" to "Hi-Res",
-                "jyeffect" to "HD Surround (高清环绕声)",
-                "sky" to "Immersive Surround (沉浸环绕声)",
-                "dolby" to "Dolby Atmos (杜比全景声)",
-                "jymaster" to "Master (超清母带)"
+                "standard" to stringResource(Res.string.standard),
+                "higher" to stringResource(Res.string.higher),
+                "exhigh" to stringResource(Res.string.exhigh),
+                "lossless" to stringResource(Res.string.lossless),
+                "hires" to stringResource(Res.string.hires),
+                "jyeffect" to stringResource(Res.string.jyeffect),
+                "sky" to stringResource(Res.string.sky),
+                "dolby" to stringResource(Res.string.dolby),
+                "jymaster" to stringResource(Res.string.jymaster)
             )
 
             Row(
@@ -382,6 +407,28 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            HorizontalDivider()
+
+            val enableScrobble by SettingsManager.enableScrobble().collectAsState(initial = false)
+            ListItem(
+                headlineContent = { Text(stringResource(Res.string.enable_scrobble)) },
+                supportingContent = {
+                    Text(
+                        stringResource(Res.string.scrobble_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = enableScrobble,
+                        onCheckedChange = { checked ->
+                             scope.launch { SettingsManager.setEnableScrobble(checked) }
+                        }
+                    )
+                }
+            )
         }
 
         // --- Lyrics Settings Section ---
@@ -452,9 +499,65 @@ fun SettingsScreen(
 
         // --- About Section ---
         SettingsCard(stringResource(Res.string.about)) {
-            Text("NekoMusic v1.0-snapshot")
-            Text("Based on Compose Multiplatform")
-            Text("By xiaojiang233")
+            Text("NekoMusic 1.0.2")
+            Text(stringResource(Res.string.about_base))
+            Text(stringResource(Res.string.about_by))
+        }
+
+        // --- Debug Section ---
+        SettingsCard(stringResource(Res.string.debug)) {
+            // API URL Debugging
+            var apiUrl by remember { mutableStateOf("") }
+            val isLoggedIn = loginState.isLoggedIn
+
+            // For manual API URL editing
+            var apiUrlInput by remember { mutableStateOf("") }
+            val currentApiUrl by SettingsManager.getApiUrl().collectAsState(initial = "")
+            var showUrlDialog by remember { mutableStateOf(false) }
+
+            if (showUrlDialog) {
+                AlertDialog(
+                    onDismissRequest = { showUrlDialog = false },
+                    title = { Text(stringResource(Res.string.api_url_debug)) },
+                    text = {
+                        OutlinedTextField(
+                            value = apiUrlInput,
+                            onValueChange = { apiUrlInput = it },
+                            label = { Text(stringResource(Res.string.api_url)) },
+                            placeholder = { Text(stringResource(Res.string.api_url_placeholder)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    SettingsManager.setApiUrl(apiUrlInput)
+                                    showUrlDialog = false
+                                }
+                            }
+                        ) { Text(stringResource(Res.string.save)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showUrlDialog = false }) { Text(stringResource(Res.string.cancel)) }
+                    }
+                )
+            }
+
+            // Debug Button
+            Button(onClick = onDebugClick, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(Res.string.open_api_debugger))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Login Section
+            if (isLoggedIn) {
+                Text(stringResource(Res.string.logged_in_as_format, loginState.accountName ?: ""))
+            } else {
+                Text(stringResource(Res.string.not_logged_in))
+            }
         }
     }
 }

@@ -84,6 +84,10 @@ object NeteaseApi {
         return request("/user/followeds", mapOf("uid" to uid, "limit" to limit, "offset" to offset))
     }
 
+    suspend fun getListenDataTotal(): ListenDataTotalResponse {
+        return request("/listen/data/total")
+    }
+
     suspend fun getPlaylistDetail(id: Long): PlaylistDetailResponse {
         return request("/playlist/detail", mapOf("id" to id))
     }
@@ -125,12 +129,21 @@ object NeteaseApi {
         return request("/artist/sub", mapOf("id" to id, "t" to t))
     }
 
+    suspend fun followUser(uid: Long, follow: Boolean = true): FollowUserResponse {
+        val t = if (follow) 1 else 0
+        return request("/user/follow", mapOf("uid" to uid, "t" to t))
+    }
+
     suspend fun getAlbum(id: Long): AlbumDetailResponse {
         return request("/album", mapOf("id" to id))
     }
 
     suspend fun getArtistTopSongs(id: Long): ArtistTopSongsResponse {
         return request("/artist/top/song", mapOf("id" to id))
+    }
+
+    suspend fun getArtistSongs(id: Long, limit: Int = 30, offset: Int = 0, order: String = "hot"): ArtistSongsResponse {
+        return request("/artist/songs", mapOf("id" to id, "limit" to limit, "offset" to offset, "order" to order))
     }
 
     suspend fun likeSong(id: Long, like: Boolean = true): LikeResponse {
@@ -161,5 +174,28 @@ object NeteaseApi {
 
     suspend fun getMusicComments(id: Long, limit: Int = 20, offset: Int = 0): CommentResponse {
         return request("/comment/music", mapOf("id" to id, "limit" to limit, "offset" to offset))
+    }
+
+    suspend fun getAlbumComments(id: Long, limit: Int = 20, offset: Int = 0): CommentResponse {
+        return request("/comment/album", mapOf("id" to id, "limit" to limit, "offset" to offset))
+    }
+
+    suspend fun getPrivateRoamingList(): PrivateRoamingResponse {
+        return request("/personalized/privatecontent")
+    }
+
+    suspend fun getPersonalFm(): PersonalFmResponse {
+        // popAdjust seems optional
+        return request("/personal_fm")
+    }
+
+    suspend fun scrobble(id: Long, sourceId: Long, time: Long) {
+        request<String>("/scrobble", mapOf("id" to id, "sourceid" to sourceId, "time" to time))
+    }
+
+    suspend fun getIntelligenceList(id: Long, pid: Long, sid: Long? = null): IntelligenceListResponse {
+        val params = mutableMapOf("id" to id, "pid" to pid)
+        if (sid != null) params["sid"] = sid
+        return request("/playmode/intelligence/list", params)
     }
 }

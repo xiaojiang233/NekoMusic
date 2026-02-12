@@ -21,6 +21,12 @@ import top.xiaojiang233.nekomusic.utils.FavoritesManager
 import kotlinx.coroutines.launch
 import top.xiaojiang233.nekomusic.utils.thumbnail
 
+import androidx.compose.material.icons.filled.PlayArrow
+import top.xiaojiang233.nekomusic.ui.comment.CommentItem
+import androidx.compose.foundation.lazy.items
+import nekomusic.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumScreen(
@@ -39,11 +45,17 @@ fun AlbumScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.album?.name ?: "Album") },
+                title = { Text(uiState.album?.name ?: stringResource(Res.string.album_fallback)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                     }
+                },
+                actions = {
+                   // Play All Button in TopBar or keep in content?
+                   // User asked for "in bar" or just "like I circled"
+                   // Screenshot shows Play All usually in header.
+                   // Let's put a "Play All" icon action or similar if desired, but sticking to content is safer for Layout.
                 }
             )
         }
@@ -52,7 +64,7 @@ fun AlbumScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else if (uiState.error != null) {
-                Text("Error: ${uiState.error}", modifier = Modifier.align(Alignment.Center))
+                Text(stringResource(Res.string.error_format, uiState.error!!), modifier = Modifier.align(Alignment.Center))
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
                     item {
@@ -70,6 +82,12 @@ fun AlbumScreen(
                              Spacer(Modifier.width(16.dp))
                              Column {
                                  Text(uiState.album?.name ?: "", style = MaterialTheme.typography.titleLarge)
+                                 Spacer(Modifier.height(8.dp))
+                                 Button(onClick = { viewModel.playAll() }) {
+                                      Icon(Icons.Default.PlayArrow, null)
+                                      Spacer(Modifier.width(8.dp))
+                                      Text(stringResource(Res.string.play_all))
+                                 }
                              }
                          }
                     }
@@ -83,10 +101,27 @@ fun AlbumScreen(
                             onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
                         )
                     }
+
+                    item {
+                        HorizontalDivider(Modifier.padding(vertical = 16.dp))
+                        Text(
+                            text = stringResource(Res.string.comments_count_format, uiState.comments.size),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        if (uiState.isLoadingComments) {
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(Modifier.size(24.dp))
+                            }
+                        }
+                    }
+
+                    items(uiState.comments) { comment ->
+                        // Reuse CommentItem from CommentScreen or simplified version
+                        CommentItem(comment)
+                    }
                 }
             }
         }
     }
 }
-
-

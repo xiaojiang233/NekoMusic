@@ -37,7 +37,7 @@ fun createColorSchemeFromSeed(seedColor: Color, isDark: Boolean): ColorScheme {
     val surface = if (isDark) Color(0xFF1C1C1C) else Color(0xFFFAFAFA)
     val onSurface = onBackground
 
-    val surfaceVariant = if (isDark) neutral.multiplyAlpha(0.2f).compositeOver(Color.Black) else neutral.multiplyAlpha(0.1f).compositeOver(Color.White)
+    val surfaceVariant = if (isDark) neutral.multiplyAlpha(0.2f).safeCompositeOver(Color.Black) else neutral.multiplyAlpha(0.1f).safeCompositeOver(Color.White)
     val onSurfaceVariant = if (isDark) Color(0xFFCAC4D0) else Color(0xFF49454F)
 
     // Outline
@@ -94,7 +94,7 @@ fun createColorSchemeFromSeed(seedColor: Color, isDark: Boolean): ColorScheme {
 private fun Color.multiplyAlpha(alpha: Float): Color = copy(alpha = this.alpha * alpha)
 
 // Manual implementation of compositeOver to avoid resolution issues/recursion
-private fun Color.compositeOver(background: Color): Color {
+private fun Color.safeCompositeOver(background: Color): Color {
     val fgAlpha = this.alpha
     val bgAlpha = background.alpha
     val outAlpha = fgAlpha + (bgAlpha * (1f - fgAlpha))

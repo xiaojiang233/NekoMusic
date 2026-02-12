@@ -20,6 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import nekomusic.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import top.xiaojiang233.nekomusic.model.Playlist
 import top.xiaojiang233.nekomusic.model.Song
 import top.xiaojiang233.nekomusic.model.UserProfile
@@ -50,7 +53,7 @@ fun ProfileScreen(
         floatingActionButton = {
             if (uiState.isLoggedIn) {
                 FloatingActionButton(onClick = { showCreateDialog = true }) {
-                    Icon(Icons.Filled.Add, "Create Playlist")
+                    Icon(Icons.Filled.Add, stringResource(Res.string.create_playlist))
                 }
             }
         }
@@ -75,9 +78,9 @@ fun ProfileScreen(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Please log in first")
+                        Text(stringResource(Res.string.please_login_first))
                         Button(onClick = { viewModel.loadProfile() }) {
-                            Text("Retry / Refresh")
+                            Text(stringResource(Res.string.retry_refresh))
                         }
                     }
                 }
@@ -86,9 +89,9 @@ fun ProfileScreen(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Error: ${uiState.error}")
+                        Text(stringResource(Res.string.error_format, uiState.error!!))
                         Button(onClick = { viewModel.loadProfile() }) {
-                            Text("Retry")
+                            Text(stringResource(Res.string.retry))
                         }
                     }
                 }
@@ -102,6 +105,7 @@ fun ProfileScreen(
                         profile = profile,
                         level = uiState.userDetail?.level ?: 0,
                         listenSongs = uiState.userDetail?.listenSongs ?: 0,
+                        listenHours = uiState.listenHours,
                         createdPlaylists = myPlaylists,
                         subscribedPlaylists = subscribedPlaylists,
                         onPlaylistClick = onPlaylistClick,
@@ -122,22 +126,22 @@ fun CreatePlaylistDialog(onDismiss: () -> Unit, onConfirm: (String, Boolean) -> 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Create Playlist") },
+        title = { Text(stringResource(Res.string.create_playlist)) },
         text = {
             Column {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Playlist Name") })
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(Res.string.playlist_name)) })
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = isPublic, onCheckedChange = { isPublic = it })
-                    Text("Public")
+                    Text(stringResource(Res.string.public))
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { if (name.isNotBlank()) onConfirm(name, isPublic) }) { Text("Create") }
+            TextButton(onClick = { if (name.isNotBlank()) onConfirm(name, isPublic) }) { Text(stringResource(Res.string.create)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
         }
     )
 }
@@ -147,6 +151,7 @@ fun ProfileContent(
     profile: UserProfile,
     level: Int,
     listenSongs: Int,
+    listenHours: Int,
     createdPlaylists: List<Playlist>,
     subscribedPlaylists: List<Playlist>,
     onPlaylistClick: (Long) -> Unit,
@@ -160,13 +165,13 @@ fun ProfileContent(
     ) {
         // Header
         item {
-            ProfileHeader(profile, level, listenSongs, onFollowsClick)
+            ProfileHeader(profile, level, listenSongs, listenHours, onFollowsClick)
         }
 
         item {
              Column {
                  Text(
-                    "Created Playlists (${createdPlaylists.size})",
+                    stringResource(Res.string.created_playlists_format, createdPlaylists.size),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -183,7 +188,7 @@ fun ProfileContent(
             item {
                  Column {
                      Text(
-                        "Subscribed Playlists (${subscribedPlaylists.size})",
+                        stringResource(Res.string.subscribed_playlists_format, subscribedPlaylists.size),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -205,6 +210,7 @@ fun ProfileHeader(
     profile: UserProfile,
     level: Int,
     listenSongs: Int,
+    listenHours: Int,
     onFollowsClick: () -> Unit
 ) {
     Card(
@@ -239,10 +245,10 @@ fun ProfileHeader(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Badge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
-                        Text("Lv.$level", modifier = Modifier.padding(4.dp))
+                        Text(stringResource(Res.string.lv_format, level), modifier = Modifier.padding(4.dp))
                     }
                     Text(
-                        "ID: ${profile.userId}",
+                        stringResource(Res.string.id_format, profile.userId),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
@@ -254,12 +260,12 @@ fun ProfileHeader(
                         maxLines = 2
                     )
                 }
-                Text("Listening: $listenSongs songs", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(Res.string.listening_time_format, listenHours), style = MaterialTheme.typography.bodySmall)
 
                 Spacer(Modifier.height(4.dp))
 
-                Button(onClick = onFollowsClick) {
-                    Text("Following: ${profile.follows}")
+                Button(onClick = { onFollowsClick() }) {
+                    Text(stringResource(Res.string.following_format, profile.follows))
                 }
             }
         }
@@ -295,7 +301,7 @@ fun PlaylistRowItem(playlist: Playlist, onClick: (Long) -> Unit, onDelete: (() -
                 maxLines = 1
             )
             Text(
-                text = "${playlist.trackCount} songs",
+                text = stringResource(Res.string.listening_format, playlist.trackCount),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
@@ -306,16 +312,16 @@ fun PlaylistRowItem(playlist: Playlist, onClick: (Long) -> Unit, onDelete: (() -
         if (onDelete != null) {
             Box {
                 IconButton(onClick = { showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, "More")
+                    Icon(Icons.Default.MoreVert, stringResource(Res.string.more))
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     DropdownMenuItem(
-                        text = { Text("Delete") },
+                        text = { Text(stringResource(Res.string.delete)) },
                         onClick = {
                             showMenu = false
                             onDelete()
                         },
-                        leadingIcon = { Icon(Icons.Default.Delete, "Delete") }
+                        leadingIcon = { Icon(Icons.Default.Delete, stringResource(Res.string.delete)) }
                     )
                 }
             }

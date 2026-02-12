@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.Filter
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,6 +43,8 @@ import top.xiaojiang233.nekomusic.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
 import top.xiaojiang233.nekomusic.ui.components.AddToPlaylistDialog
 import top.xiaojiang233.nekomusic.api.NeteaseApi
+import nekomusic.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Suppress("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,10 +102,10 @@ fun PlaylistScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Playlist") },
+                title = { Text(stringResource(Res.string.playlist_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -120,7 +123,7 @@ fun PlaylistScreen(
             }
         } else if (uiState.error != null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Error: ${uiState.error}")
+                Text(stringResource(Res.string.error_format, uiState.error!!))
             }
         } else {
             // Search Filter
@@ -178,7 +181,7 @@ fun PlaylistScreen(
                                 ) {
                                     AsyncImage(
                                         model = playlist.coverImgUrl.thumbnail(200),
-                                        contentDescription = "Cover",
+                                        contentDescription = stringResource(Res.string.cover),
                                         modifier = Modifier.size(coverSize).clip(RoundedCornerShape(12.dp)),
                                         contentScale = ContentScale.Crop
                                     )
@@ -221,47 +224,69 @@ fun PlaylistScreen(
                                         Spacer(Modifier.height(12.dp))
 
                                         // Actions: compact on narrow screens, full buttons on wide screens
+                                        val isCreator = playlist.creator?.userId == uiState.currentUserId
+                                        val isLikedSongs = playlist.specialType == 5
+
                                         if (isNarrowScreen) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 // Play icon button
                                                 FilledIconButton(
-                                                    onClick = { PlayerController.playList(filteredTracks) },
+                                                    onClick = {
+                                                        if (searchQuery.isEmpty()) {
+                                                            PlayerController.playList(
+                                                                songs = filteredTracks,
+                                                                sourceId = playlist.id,
+                                                                totalTrackIds = playlist.trackIds.map { it.id }
+                                                            )
+                                                        } else {
+                                                            PlayerController.playList(filteredTracks, sourceId = playlist.id)
+                                                        }
+                                                    },
                                                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary),
                                                     modifier = Modifier.size(44.dp)
                                                 ) {
-                                                    Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = MaterialTheme.colorScheme.onPrimary)
+                                                    Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(Res.string.play), tint = MaterialTheme.colorScheme.onPrimary)
                                                 }
 
-                                                Spacer(Modifier.width(8.dp))
+                                                // Hide Subscribe button for Liked Songs or if user is creator
+                                                if (!isLikedSongs && !isCreator) {
+                                                    Spacer(Modifier.width(8.dp))
 
-                                                // Subscribe / Unsubscribe as add/remove
-                                                FilledIconButton(
-                                                    onClick = {
-                                                        scope.launch {
-                                                            NeteaseApi.subscribePlaylist(playlist.id, !isSubscribed)
-                                                            viewModel.loadPlaylist(playlistId)
-                                                        }
-                                                    },
-                                                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (isSubscribed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary),
-                                                    modifier = Modifier.size(44.dp)
-                                                ) {
-                                                    Icon(if (isSubscribed) Icons.Filled.Remove else Icons.Filled.Add, contentDescription = if (isSubscribed) "Unsubscribe" else "Subscribe", tint = MaterialTheme.colorScheme.onSecondary)
+                                                    // Subscribe / Unsubscribe as add/remove
+                                                    FilledIconButton(
+                                                        onClick = {
+                                                            scope.launch {
+                                                                NeteaseApi.subscribePlaylist(playlist.id, !isSubscribed)
+                                                                viewModel.loadPlaylist(playlistId)
+                                                            }
+                                                        },
+                                                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = if (isSubscribed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary),
+                                                        modifier = Modifier.size(44.dp)
+                                                    ) {
+                                                        Icon(if (isSubscribed) Icons.Filled.Remove else Icons.Filled.Add, contentDescription = if (isSubscribed) stringResource(Res.string.unsubscribe) else stringResource(Res.string.subscribe), tint = MaterialTheme.colorScheme.onSecondary)
+                                                    }
                                                 }
                                             }
                                         } else {
                                             Button(onClick = {
-                                                PlayerController.playList(filteredTracks)
+                                                if (searchQuery.isEmpty()) {
+                                                    PlayerController.playList(
+                                                        songs = filteredTracks,
+                                                        sourceId = playlist.id,
+                                                        totalTrackIds = playlist.trackIds.map { it.id }
+                                                    )
+                                                } else {
+                                                    PlayerController.playList(filteredTracks, sourceId = playlist.id)
+                                                }
                                             }) {
                                                 Icon(Icons.Filled.PlayArrow, null)
                                                 Spacer(Modifier.width(8.dp))
-                                                Text("Play All")
+                                                Text(stringResource(Res.string.play_all))
                                             }
 
-                                            // Subscription Button (Mock logic for now, ideally check if user is creator)
-                                            // Hide if playlist creator is current user
-                                            val isCreator = playlist.creator?.userId == uiState.currentUserId
-
-                                            if (!isCreator) {
+                                            // Subscription Button
+                                            // Hide if playlist creator is current user or if it's the Liked Songs list
+                                            if (!isCreator && !isLikedSongs) {
                                                 Spacer(Modifier.height(8.dp))
                                                 OutlinedButton(onClick = {
                                                     scope.launch {
@@ -269,7 +294,7 @@ fun PlaylistScreen(
                                                         viewModel.loadPlaylist(playlistId) // Refresh
                                                     }
                                                 }) {
-                                                    Text(if (isSubscribed) "Unsubscribe" else "Subscribe")
+                                                    Text(if (isSubscribed) stringResource(Res.string.unsubscribe) else stringResource(Res.string.subscribe))
                                                 }
                                             }
                                         }
@@ -282,9 +307,9 @@ fun PlaylistScreen(
                             OutlinedTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                placeholder = { Text("Filter songs...") },
-                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                                label = { Text(stringResource(Res.string.filter_songs)) },
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                leadingIcon = { Icon(Icons.Default.Filter, null) },
                                 singleLine = true
                             )
                         }
@@ -294,7 +319,7 @@ fun PlaylistScreen(
                             SongListItem(
                                 index = index + 1,
                                 song = song,
-                                onClick = { PlayerController.playList(filteredTracks, index) },
+                                onClick = { PlayerController.playList(filteredTracks, index, sourceId = playlist.id) },
                                 onArtistClick = onArtistClick,
                                 isLiked = likedIds.contains(song.id),
                                 onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
@@ -407,7 +432,7 @@ private fun SongListItemContent(
 
         // Lazy load cover
         AsyncImage(
-            model = song.al.picUrl.thumbnail(100),
+            model = song.al.cover.thumbnail(100),
             contentDescription = null,
             modifier = Modifier.size(coverSize).clip(RoundedCornerShape(4.dp)),
             contentScale = ContentScale.Crop
@@ -459,7 +484,7 @@ private fun SongListItemContent(
             IconButton(onClick = { onLikeClick(song.id) }) {
                 Icon(
                     imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Like",
+                    contentDescription = if (isLiked) stringResource(Res.string.unlike) else stringResource(Res.string.like),
                     tint = if (isLiked) Color.Red else Color.Gray
                 )
             }
@@ -468,35 +493,43 @@ private fun SongListItemContent(
         // More Menu
         Box {
             IconButton(onClick = { onMenuChange(true) }) {
-                Icon(Icons.Default.MoreVert, "More", tint = Color.Gray)
+                Icon(Icons.Default.MoreVert, stringResource(Res.string.more), tint = Color.Gray)
             }
             DropdownMenu(
                 expanded = showMenu,
                 onDismissRequest = { onMenuChange(false) }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Copy ID") },
+                    text = { Text(stringResource(Res.string.copy_id)) },
                     onClick = {
                         clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(song.id.toString()))
                         onMenuChange(false)
                     },
-                    leadingIcon = { Icon(Icons.Default.ContentCopy, "Copy ID") }
+                    leadingIcon = { Icon(Icons.Default.ContentCopy, stringResource(Res.string.copy_id)) }
                 )
                 DropdownMenuItem(
-                    text = { Text("Share Link") },
+                    text = { Text(stringResource(Res.string.share_link)) },
                     onClick = {
                          clipboardManager.setText(androidx.compose.ui.text.AnnotatedString("https://music.163.com/#/song?id=${song.id}"))
                          onMenuChange(false)
                     },
-                    leadingIcon = { Icon(Icons.Default.Share, "Share Link") }
+                    leadingIcon = { Icon(Icons.Default.Share, stringResource(Res.string.share_link)) }
                 )
                 DropdownMenuItem(
-                    text = { Text("Add to Playlist") },
+                    text = { Text(stringResource(Res.string.add_to_playlist)) },
                     onClick = {
                         onMenuChange(false)
                         onShowAddDialog()
                     },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Add to Playlist") }
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, stringResource(Res.string.add_to_playlist)) }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.play_next)) },
+                    onClick = {
+                        PlayerController.addToNext(song)
+                        onMenuChange(false)
+                    },
+                    leadingIcon = { Icon(Icons.Default.Add, stringResource(Res.string.play_next)) }
                 )
             }
         }

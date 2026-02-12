@@ -67,10 +67,16 @@ fun MainLayout() {
                                 },
                                 onSearchClick = {
                                     navController.navigate("search")
+                                },
+                                onOpenPlayer = {
+                                    navController.navigate("player")
                                 }
                             )
                         }
-                        composable("settings") { SettingsScreen() }
+                        composable("settings") { SettingsScreen(onDebugClick = { navController.navigate("debug") }) }
+                        composable("debug") {
+                            top.xiaojiang233.nekomusic.ui.settings.DebugScreen(onBackClick = { navController.popBackStack() })
+                        }
                         composable("profile") {
                             // The ProfileScreen handles fetching.
                             ProfileScreen(
@@ -132,7 +138,10 @@ fun MainLayout() {
                             exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down) },
                             popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down) }
                         ) {
-                            top.xiaojiang233.nekomusic.ui.player.PlayerScreen(onBack = { navController.popBackStack() })
+                            top.xiaojiang233.nekomusic.ui.player.PlayerScreen(
+                                onBack = { navController.popBackStack() },
+                                onCommentClick = { id -> navController.navigate("comment/$id") }
+                            )
                         }
                         composable(
                             "comment/{id}",
@@ -152,7 +161,11 @@ fun MainLayout() {
                     ) {
                         PlayerBar(
                             onClick = { navController.navigate("player") },
-                            onCommentClick = { id -> navController.navigate("comment/$id") }
+                            onCommentClick = {
+                                playbackState.currentSong?.id?.let { id ->
+                                    navController.navigate("comment/$id")
+                                }
+                            }
                         )
                     }
                 }
@@ -228,10 +241,14 @@ fun MainLayout() {
                                 HomeScreen(
                                     onPlaylistClick = { id -> navController.navigate("playlist/$id") },
                                     onDailySongsClick = { navController.navigate("daily_songs") },
-                                    onSearchClick = { navController.navigate("search") }
+                                    onSearchClick = { navController.navigate("search") },
+                                    onOpenPlayer = { navController.navigate("player") }
                                 )
                             }
-                            composable("settings") { SettingsScreen() }
+                            composable("settings") { SettingsScreen(onDebugClick = { navController.navigate("debug") }) }
+                            composable("debug") {
+                                top.xiaojiang233.nekomusic.ui.settings.DebugScreen(onBackClick = { navController.popBackStack() })
+                            }
                             composable("profile") {
                                 // The ProfileScreen handles fetching.
                                 ProfileScreen(
@@ -296,7 +313,10 @@ fun MainLayout() {
                                 exitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down) },
                                 popExitTransition = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Down) }
                             ) {
-                                top.xiaojiang233.nekomusic.ui.player.PlayerScreen(onBack = { navController.popBackStack() })
+                                top.xiaojiang233.nekomusic.ui.player.PlayerScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onCommentClick = { id -> navController.navigate("comment/$id") }
+                                )
                             }
                             composable(
                                 "comment/{id}",
@@ -317,7 +337,11 @@ fun MainLayout() {
                     ) {
                         PlayerBar(
                             onClick = { navController.navigate("player") },
-                            onCommentClick = { id -> navController.navigate("comment/$id") }
+                            onCommentClick = {
+                                playbackState.currentSong?.id?.let { id ->
+                                    navController.navigate("comment/$id")
+                                }
+                            }
                         )
                     }
                 }

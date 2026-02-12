@@ -12,6 +12,8 @@ import top.xiaojiang233.nekomusic.ui.setup.SetupScreen
 import top.xiaojiang233.nekomusic.ui.theme.createColorSchemeFromSeed
 import top.xiaojiang233.nekomusic.ui.theme.getDynamicColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Box
+import top.xiaojiang233.nekomusic.ui.components.ToastOverlay
 
 @Composable
 
@@ -30,11 +32,16 @@ fun App() {
 
     MaterialTheme(colorScheme = colorScheme) {
         Surface {
-           if (isFirstLaunchCompleted) {
-               MainLayout()
-           } else {
-               SetupScreen(onFinished = { })
-           }
+            Box {
+                if (isFirstLaunchCompleted) {
+                    MainLayout()
+                } else {
+                    SetupScreen(onFinished = { })
+                }
+
+                // Show ToastOverlay (Visible logic handled inside)
+                ToastOverlay()
+            }
         }
     }
 }

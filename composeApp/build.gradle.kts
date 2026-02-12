@@ -94,7 +94,7 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
-        versionName = "1.1"
+        versionName = "1.2"
     }
     packaging {
         resources {
@@ -138,7 +138,7 @@ compose.desktop {
             targetFormats(TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
 
             packageName = "NekoMusic"
-            packageVersion = "1.0.1"
+            packageVersion = "1.0.2"
             description = "第三方音乐播放器"
             copyright = "© 2026 xiaojiang233"
             vendor = "xiaojiang233"

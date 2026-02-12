@@ -31,6 +31,10 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import top.xiaojiang233.nekomusic.model.Album
 import top.xiaojiang233.nekomusic.utils.thumbnail
+import nekomusic.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+
 
 @Suppress("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,7 +49,11 @@ fun ArtistScreen(
     val likedIds by FavoritesManager.likedSongIds.collectAsState()
     val scope = rememberCoroutineScope()
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Top 50", "Albums")
+    val tabs = listOf(
+        stringResource(Res.string.top_50),
+        stringResource(Res.string.all_songs_label),
+        stringResource(Res.string.albums)
+    )
 
     LaunchedEffect(artistId) {
         viewModel.loadArtist(artistId)
@@ -54,10 +62,10 @@ fun ArtistScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.artist?.name ?: "Artist") },
+                title = { Text(uiState.artist?.name ?: stringResource(Res.string.artist_fallback)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back))
                     }
                 }
             )
@@ -69,7 +77,7 @@ fun ArtistScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center))
             } else if (uiState.error != null) {
-                Text("Error: ${uiState.error}", modifier = Modifier.align(Alignment.Center))
+                Text(stringResource(Res.string.error_format, uiState.error!!), modifier = Modifier.align(Alignment.Center))
             } else {
                 LazyColumn(Modifier.fillMaxSize()) {
                     item {
@@ -97,7 +105,7 @@ fun ArtistScreen(
                                      contentColor = if (uiState.isSubscribed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
                                  )
                              ) {
-                                 Text(if (uiState.isSubscribed) "Followed" else "Follow")
+                                 Text(if (uiState.isSubscribed) stringResource(Res.string.followed) else stringResource(Res.string.follow))
                              }
                          }
                     }
@@ -117,7 +125,7 @@ fun ArtistScreen(
                     when (selectedTabIndex) {
                         0 -> {
                             item {
-                                Text("Hot Songs", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(16.dp))
+                                Text(stringResource(Res.string.hot_songs), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(16.dp))
                             }
 
                             itemsIndexed(uiState.hotSongs) { index, song ->
@@ -131,8 +139,40 @@ fun ArtistScreen(
                             }
                         }
                         1 -> {
+                            // All songs
                             item {
-                                Text("Albums", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(16.dp))
+                                Text(stringResource(Res.string.all_songs_label), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(16.dp))
+                            }
+
+                            itemsIndexed(uiState.allSongs) { index, song ->
+                                SongListItem(
+                                    index = index + 1,
+                                    song = song,
+                                    onClick = { viewModel.playAllSong(song) },
+                                    isLiked = likedIds.contains(song.id),
+                                    onLikeClick = { id -> scope.launch { FavoritesManager.toggleLike(id) } }
+                                )
+                            }
+
+                            item {
+                                LaunchedEffect(Unit) {
+                                    viewModel.loadMoreAllSongs()
+                                }
+                                if (uiState.isLoadingAllSongs) {
+                                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                        CircularProgressIndicator()
+                                    }
+                                } else if (uiState.allSongsHasMore) {
+                                     // Trigger load more when visible
+                                     LaunchedEffect(Unit) {
+                                         viewModel.loadMoreAllSongs()
+                                     }
+                                }
+                            }
+                        }
+                        2 -> {
+                            item {
+                                Text(stringResource(Res.string.albums), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(16.dp))
                             }
 
                             val chunkedAlbums = uiState.albums.chunked(cols)

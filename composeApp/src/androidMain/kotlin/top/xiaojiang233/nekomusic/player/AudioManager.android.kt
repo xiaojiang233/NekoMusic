@@ -1,10 +1,11 @@
 package top.xiaojiang233.nekomusic.player
 
 import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.common.Player
-import androidx.media3.session.MediaSession
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import top.xiaojiang233.nekomusic.model.Song
+import top.xiaojiang233.nekomusic.NekoApp
+import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,8 +15,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import top.xiaojiang233.nekomusic.model.Song
-import top.xiaojiang233.nekomusic.NekoApp
+import kotlinx.coroutines.withContext
+import androidx.media3.common.PlaybackException
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import android.content.ComponentName
+import com.google.common.util.concurrent.MoreExecutors
+import com.google.common.util.concurrent.ListenableFuture
 
 // Use a simple Application context reference or similar.
 // Ideally, we start a Service, but for simplicity we'll wrap ExoPlayer here.
@@ -32,72 +38,74 @@ actual object AudioManager {
     actual var onNext: (() -> Unit)? = null
     actual var onPrevious: (() -> Unit)? = null
 
-    private var player: ExoPlayer? = null
-    private var mediaSession: MediaSession? = null
-    private var _playerInitialized = false
+    private var controller: MediaController? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
 
-    private fun ensurePlayer() {
-        if (_playerInitialized) return
-        val context = NekoApp.INSTANCE
-
-        player = ExoPlayer.Builder(context).build().apply {
-            addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    _state.value = _state.value.copy(isPlaying = isPlaying)
-                }
-
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_READY) {
-                        _state.value = _state.value.copy(duration = duration)
-                    } else if (playbackState == Player.STATE_ENDED) {
-                        // Auto-advance to next song
-                        onNext?.invoke()
-                    }
-                }
-            })
+    private fun ensureController(callback: (MediaController) -> Unit) {
+        val existing = controller
+        if (existing != null) {
+            callback(existing)
+            return
         }
 
-        // Initialize MediaSession
-        mediaSession = MediaSession.Builder(context, player!!)
-            .setCallback(object : MediaSession.Callback {
-                override fun onConnect(
-                    session: MediaSession,
-                    controller: MediaSession.ControllerInfo
-                ): MediaSession.ConnectionResult {
-                    return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                        .setAvailablePlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS)
-                        .build()
+        if (controllerFuture == null) {
+            val context = NekoApp.INSTANCE
+            val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+            val future = MediaController.Builder(context, sessionToken).buildAsync()
+            future.addListener({
+                try {
+                    val newController = future.get()
+                    this.controller = newController
+                    setupController(newController)
+                    callback(newController)
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
+            }, MoreExecutors.directExecutor())
+            controllerFuture = future
+        } else {
+            controllerFuture?.addListener({
+                controller?.let { callback(it) }
+            }, MoreExecutors.directExecutor())
+        }
+    }
 
-                // Note: Forward/Rewind are handled by player automatically.
-                // Next/Previous require queue knowledge or callback.
-                // ExoPlayer session automatically calls player.seekToNext/Previous.
-                // We need to override player behavior or just listen to keys?
-                // MediaSession usually defaults to calling player methods.
-                // If we want to capture Next/Prev when buttons are clicked:
-                // We typically use a Custom Player or set session commands.
-                // Simpler: The UI and System buttons call player.seekToNext().
-                // We can intercept this via the Player.Listener or by wrapping ExoPlayer?
-                // Actually, overriding onCustomCommand or setting session commands is standard.
-                // For simplicity, we assume player.seekToNext() triggers the listener.
-                // But better: Use Session Callback.
-            })
-            .build()
+    private fun setupController(player: MediaController) {
+        player.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                _state.value = _state.value.copy(isPlaying = isPlaying)
+            }
 
-        // Hack: To intercept "Next" on ExoPlayer, we usually need a Queue.
-        // Since we are managing queue externally (via simple currentSong), "Next" on system UI might do nothing
-        // if the player has no playlist.
-        // We can force it to think it has items or handle the intent.
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                // Keep UI updated if track changes via system controls
+                if (mediaItem != null) {
+                    // Note: We don't have a direct reverse mapping from mediaId to Song object here easily
+                    // But our QueueManager in common code should handle it via callbacks.
+                }
+            }
 
-        _playerInitialized = true
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) {
+                    _state.value = _state.value.copy(duration = player.duration)
+                } else if (playbackState == Player.STATE_ENDED) {
+                    onNext?.invoke()
+                }
+            }
 
-        // Polling for progress
+            override fun onPlayerError(error: PlaybackException) {
+                println("AudioManager: Controller error: ${error.message}")
+                scope.launch {
+                    delay(2000)
+                    onNext?.invoke()
+                }
+            }
+        })
+
+        // Poll position
         scope.launch {
             while (true) {
-                player?.let { p ->
-                    if (p.isPlaying) {
-                        _state.value = _state.value.copy(currentPosition = p.currentPosition)
-                    }
+                if (player.isPlaying) {
+                    _state.value = _state.value.copy(currentPosition = player.currentPosition)
                 }
                 delay(1000)
             }
@@ -105,48 +113,61 @@ actual object AudioManager {
     }
 
     actual fun play(url: String, song: Song) {
-        ensurePlayer()
-        println("AudioManager: Playing URL on Android: $url")
-        player?.let {
-            val metadata = MediaMetadata.Builder()
-                .setTitle(song.name)
-                .setArtist(song.ar.joinToString(", ") { it.name })
-                .setArtworkUri(android.net.Uri.parse(song.al.picUrl))
-                .build()
+        ensureController { p ->
+            scope.launch {
+                withContext(Dispatchers.Main) {
+                    println("AudioManager: Playing URL via Controller: $url")
 
-            val item = MediaItem.Builder()
-                .setUri(url)
-                .setMediaMetadata(metadata)
-                .build()
+                    val artworkUri = song.al.cover?.takeIf { it.isNotEmpty() }?.toUri()
 
-            it.setMediaItem(item)
-            it.prepare()
-            it.play()
-            _state.value = _state.value.copy(currentSong = song, isPlaying = true)
+                    val metadata = MediaMetadata.Builder()
+                        .setTitle(song.name)
+                        .setArtist(song.ar.joinToString(", ") { it.name })
+                        .setAlbumTitle(song.al.name)
+                        .setArtworkUri(artworkUri)
+                        .build()
+
+                    // Media3 MediaController doesn't pass the URI directly in MediaItem.localConfiguration.
+                    // We MUST pass it via setMediaUri in RequestMetadata for the Service to "resolve" it.
+                    val requestMetadata = MediaItem.RequestMetadata.Builder()
+                        .setMediaUri(url.toUri())
+                        .build()
+
+                    val item = MediaItem.Builder()
+                        .setMediaId(song.id.toString())
+                        .setUri(url) // For local use if any
+                        .setMediaMetadata(metadata)
+                        .setRequestMetadata(requestMetadata)
+                        .build()
+
+                    p.setMediaItem(item)
+                    p.prepare()
+                    p.play()
+                    _state.value = _state.value.copy(currentSong = song, isPlaying = true)
+                }
+            }
         }
     }
 
     actual fun pause() {
-        player?.pause()
+        controller?.pause()
     }
 
     actual fun resume() {
-        player?.play()
+        controller?.play()
     }
 
     actual fun seekTo(position: Long) {
-        player?.seekTo(position)
+        controller?.seekTo(position)
     }
 
     actual fun setVolume(volume: Float) {
-        player?.volume = volume
+        controller?.volume = volume
     }
 
     actual fun release() {
-        mediaSession?.release()
-        mediaSession = null
-        player?.release()
-        player = null
-        _playerInitialized = false
+        controller?.release()
+        controller = null
+        controllerFuture = null
     }
 }

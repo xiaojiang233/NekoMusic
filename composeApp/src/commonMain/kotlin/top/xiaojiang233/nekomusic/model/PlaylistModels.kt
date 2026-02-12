@@ -1,6 +1,7 @@
 package top.xiaojiang233.nekomusic.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 
 @Serializable
 data class PlaylistDetailResponse(
@@ -18,7 +19,8 @@ data class PlaylistDetail(
     val creator: UserProfile? = null,
     val tags: List<String>? = null,
     val trackCount: Int,
-    val subscribed: Boolean? = null
+    val subscribed: Boolean? = null,
+    val specialType: Int = 0
 )
 
 @Serializable
@@ -55,10 +57,14 @@ data class Artist(
 data class Album(
     val id: Long,
     val name: String,
-    val picUrl: String?,
+    val picUrl: String? = null,
+    @SerialName("pic_str") val picStr: String? = null,
     val publishTime: Long = 0,
     val size: Int = 0
-)
+) {
+    val cover: String?
+        get() = picUrl ?: picStr
+}
 
 @Serializable
 data class DailySongsResponse(
@@ -80,7 +86,11 @@ data class SongUrlResponse(
 @Serializable
 data class SongUrl(
     val id: Long,
-    val url: String?
+    val url: String? = null,
+    val br: Int = 0,
+    val size: Int = 0,
+    val md5: String? = null,
+    val code: Int = 0
 )
 
 @Serializable
@@ -183,6 +193,13 @@ data class ArtistTopSongsResponse(
 )
 
 @Serializable
+data class ArtistSongsResponse(
+    val songs: List<Song>,
+    val total: Int,
+    val code: Int
+)
+
+@Serializable
 data class LikeResponse(
     val code: Int
 )
@@ -214,4 +231,42 @@ data class CreatePlaylistResponse(
 @Serializable
 data class DeletePlaylistResponse(
     val code: Int
+)
+
+@Serializable
+data class PersonalFmResponse(
+    @SerialName("data") val data: List<FmSong>?,
+    val code: Int
+)
+
+@Serializable
+data class FmSong(
+    val name: String,
+    val id: Long,
+    val artists: List<Artist>,
+    val album: Album,
+    val duration: Long
+) {
+    fun toSong(): Song {
+        return Song(
+            id = id,
+            name = name,
+            ar = artists,
+            al = album,
+            dt = duration
+        )
+    }
+}
+
+@Serializable
+data class IntelligenceListResponse(
+    val data: List<IntelligenceItem>,
+    val code: Int
+)
+
+@Serializable
+data class IntelligenceItem(
+    val id: Long,
+    val songInfo: Song? = null, // Sometimes song info might be missing or structure varies slightly, but usually it matches
+    val recommended: Boolean = false
 )

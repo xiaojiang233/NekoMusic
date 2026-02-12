@@ -51,3 +51,19 @@ data class Playlist(
     val subscribed: Boolean? = null,
     val specialType: Int = 0 // 0: normal, 5: favorites
 )
+
+@Serializable
+data class PrivateRoamingResponse(
+    val result: List<PrivateRoamingItem>,
+    val code: Int
+)
+
+@Serializable
+data class PrivateRoamingItem(
+    val id: Long,
+    val name: String,
+    val picUrl: String,
+    val sPicUrl: String? = null,
+    val type: Int? = null,
+    val copywriter: String? = null
+)
